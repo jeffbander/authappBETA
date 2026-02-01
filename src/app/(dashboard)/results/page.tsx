@@ -26,12 +26,15 @@ type DecisionFilter = "" | "APPROVED_CLEAN" | "APPROVED_NEEDS_LETTER" | "DENIED"
 export default function ResultsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [dateFilter, setDateFilter] = useState("");
+  const [providerFilter, setProviderFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const providers = useQuery(api.providers.list);
   const patients = useQuery(api.patients.list, {
     statusFilter: statusFilter || undefined,
     dateOfServiceFilter: dateFilter || undefined,
+    providerFilter: providerFilter || undefined,
   });
 
   const handleCopy = async (text: string, id: string) => {
@@ -50,6 +53,7 @@ export default function ResultsPage() {
       recommendedStudy: patient.recommendedStudy || "",
       rationale: patient.rationale || "",
       decision: patient.decision || "",
+      supportingCriteria: patient.supportingCriteria || undefined,
     });
     doc.save(`attestation_${patient.mrn}_${patient.dateOfService}.pdf`);
   };
@@ -158,12 +162,30 @@ export default function ResultsPage() {
               className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
-          {(statusFilter || dateFilter) && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Provider
+            </label>
+            <select
+              value={providerFilter}
+              onChange={(e) => setProviderFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">All Providers</option>
+              {providers?.map((p) => (
+                <option key={p._id} value={p.name}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {(statusFilter || dateFilter || providerFilter) && (
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setStatusFilter("");
                   setDateFilter("");
+                  setProviderFilter("");
                 }}
                 className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800"
               >
@@ -308,6 +330,34 @@ export default function ResultsPage() {
                         </p>
                       </div>
                     )}
+
+                    {patient.supportingCriteria &&
+                      patient.supportingCriteria.length > 0 && (
+                        <div className="mt-4">
+                          <span className="text-xs font-medium text-slate-500">
+                            Supporting Criteria
+                          </span>
+                          <div className="mt-1 space-y-2">
+                            {patient.supportingCriteria.map((sc, i) => (
+                              <div
+                                key={i}
+                                className="bg-blue-50 border border-blue-100 p-3 rounded-lg"
+                              >
+                                <p className="text-xs font-semibold text-blue-800">
+                                  {sc.ruleName}
+                                </p>
+                                <p className="text-sm text-slate-700 mt-0.5">
+                                  &ldquo;{sc.criterion}&rdquo;
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  <span className="font-medium">Evidence:</span>{" "}
+                                  {sc.clinicalEvidence}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                     {patient.missingFields &&
                       patient.missingFields.length > 0 && (

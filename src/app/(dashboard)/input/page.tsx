@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useAction } from "convex/react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../../../convex/_generated/api";
 import { ClipboardList, Send, RotateCcw } from "lucide-react";
@@ -11,6 +11,7 @@ export default function InputPage() {
   const createPatient = useMutation(api.patients.create);
   const processPatient = useAction(api.processing.processPatient);
   const seedRules = useMutation(api.rules.seed);
+  const providers = useQuery(api.providers.list);
 
   const mrnRef = useRef<HTMLInputElement>(null);
   const [mrn, setMrn] = useState("");
@@ -21,6 +22,7 @@ export default function InputPage() {
   const [clinicalNotes, setClinicalNotes] = useState("");
   const [insuranceInfo, setInsuranceInfo] = useState("");
   const [previousStudies, setPreviousStudies] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lastSubmitted, setLastSubmitted] = useState<string | null>(null);
 
@@ -46,6 +48,9 @@ export default function InputPage() {
         insuranceInfo,
         previousStudies,
         createdBy: user.id,
+        ...(selectedProvider && selectedProvider !== "Other"
+          ? { selectedProvider }
+          : {}),
       });
 
       processPatient({ patientId });
@@ -154,6 +159,24 @@ export default function InputPage() {
             Clinical Information
           </h2>
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Provider
+              </label>
+              <select
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+              >
+                <option value="">Select Provider...</option>
+                {providers?.map((p) => (
+                  <option key={p._id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value="Other">Other</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Clinical Notes

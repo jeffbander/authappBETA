@@ -10,6 +10,7 @@ export const create = mutation({
     insuranceInfo: v.string(),
     previousStudies: v.string(),
     createdBy: v.string(),
+    selectedProvider: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const patientId = await ctx.db.insert("patients", {
@@ -52,6 +53,11 @@ export const updateWithResults = mutation({
     extractedDiagnoses: v.optional(v.array(v.string())),
     extractedSymptoms: v.optional(v.array(v.string())),
     extractedPriorStudies: v.optional(v.array(v.string())),
+    supportingCriteria: v.optional(v.array(v.object({
+      ruleName: v.string(),
+      criterion: v.string(),
+      clinicalEvidence: v.string(),
+    }))),
     missingFields: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
@@ -64,6 +70,7 @@ export const list = query({
   args: {
     statusFilter: v.optional(v.string()),
     dateOfServiceFilter: v.optional(v.string()),
+    providerFilter: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let patients;
@@ -83,6 +90,12 @@ export const list = query({
     if (args.dateOfServiceFilter) {
       patients = patients.filter(
         (p) => p.dateOfService === args.dateOfServiceFilter
+      );
+    }
+
+    if (args.providerFilter) {
+      patients = patients.filter(
+        (p) => p.selectedProvider === args.providerFilter
       );
     }
 

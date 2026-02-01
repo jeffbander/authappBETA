@@ -1,5 +1,11 @@
 import jsPDF from "jspdf";
 
+interface SupportingCriterion {
+  ruleName: string;
+  criterion: string;
+  clinicalEvidence: string;
+}
+
 interface PdfData {
   patientName: string;
   patientDob: string;
@@ -12,6 +18,7 @@ interface PdfData {
   signatureDataUrl?: string;
   providerName?: string;
   providerCredentials?: string;
+  supportingCriteria?: SupportingCriterion[];
 }
 
 export function generateAttestationPdf(data: PdfData): jsPDF {
@@ -68,37 +75,40 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
 
   y += 5;
 
-  // Authorization Decision
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text("Authorization Decision", 20, y);
-  y += 8;
-
-  doc.setFontSize(10);
-  const decisionLabel = formatDecision(data.decision);
+  // Recommended Procedure
   const studyLabel = formatStudy(data.recommendedStudy);
-
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("Decision:", 20, y);
-  doc.setFont("helvetica", "normal");
-
-  // Color-code the decision
-  if (data.decision === "APPROVED_CLEAN") {
-    doc.setTextColor(0, 128, 0);
-  } else if (data.decision === "APPROVED_NEEDS_LETTER") {
-    doc.setTextColor(180, 140, 0);
-  } else {
-    doc.setTextColor(200, 0, 0);
-  }
-  doc.text(decisionLabel, 75, y);
+  doc.setTextColor(0, 51, 102);
+  doc.text(`Recommended Procedure: ${studyLabel}`, 20, y);
   doc.setTextColor(0, 0, 0);
-  y += 6;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Recommended Study:", 20, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(studyLabel, 75, y);
   y += 10;
+
+  // Supporting Criteria
+  if (data.supportingCriteria && data.supportingCriteria.length > 0) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Supporting Criteria", 20, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    for (const sc of data.supportingCriteria) {
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      const bulletLine = `\u2022 ${sc.ruleName} \u2014 \u201C${sc.criterion}\u201D`;
+      const bulletLines = doc.splitTextToSize(bulletLine, pageWidth - 48);
+      doc.setFont("helvetica", "normal");
+      doc.text(bulletLines, 24, y);
+      y += bulletLines.length * 5;
+      doc.setFont("helvetica", "italic");
+      const evidenceLines = doc.splitTextToSize(`Evidence: ${sc.clinicalEvidence}`, pageWidth - 52);
+      doc.text(evidenceLines, 28, y);
+      y += evidenceLines.length * 5 + 4;
+    }
+    y += 4;
+  }
 
   // Rationale
   doc.setFontSize(12);

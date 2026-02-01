@@ -42,6 +42,13 @@ Analyze the clinical information and return a JSON response with the following s
   "decision": "APPROVED_CLEAN" | "APPROVED_NEEDS_LETTER" | "DENIED",
   "recommendedStudy": "NUCLEAR" | "STRESS_ECHO" | "ECHO" | "VASCULAR",
   "rationale": "Detailed explanation of the authorization decision",
+  "supportingCriteria": [
+    {
+      "ruleName": "Name of the authorization rule (e.g. Nuclear Stress Test)",
+      "criterion": "Exact criterion text from the rule that supports this decision",
+      "clinicalEvidence": "The specific clinical finding from the patient that matches this criterion"
+    }
+  ],
   "denialReason": "If denied, specific reason for denial" | null,
   "extractedPatientName": "Patient name from notes" | null,
   "extractedDob": "Patient DOB from notes" | null,
@@ -58,8 +65,9 @@ Important rules:
 2. Medicare Advantage should be treated as commercial insurance.
 3. Follow the study hierarchy: Nuclear > Stress Echo > Echo > Vascular.
 4. If critical clinical information is missing, set needsReview to true and list missing fields.
-5. Provide detailed rationale referencing specific authorization criteria.
-6. Return ONLY the JSON, no other text.`;
+5. Reference the specific authorization rule and criterion text that supports the decision. Quote the exact criterion from the rules. Structure the rationale as: clinical finding → matching rule citation.
+6. The "supportingCriteria" array must include every rule criterion that supports the decision. Each entry should cite the rule name, quote the exact criterion text, and describe the clinical evidence from the patient.
+7. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -67,7 +75,7 @@ Important rules:
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       });
@@ -101,6 +109,7 @@ Important rules:
         extractedDiagnoses: result.extractedDiagnoses || undefined,
         extractedSymptoms: result.extractedSymptoms || undefined,
         extractedPriorStudies: result.extractedPriorStudies || undefined,
+        supportingCriteria: result.supportingCriteria || undefined,
         missingFields: result.missingFields || undefined,
       });
     } catch (error) {

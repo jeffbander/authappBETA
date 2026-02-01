@@ -38,7 +38,13 @@ export default defineSchema({
     extractedSymptoms: v.optional(v.array(v.string())),
     extractedPriorStudies: v.optional(v.array(v.string())),
     attestationPdfUrl: v.optional(v.string()),
+    supportingCriteria: v.optional(v.array(v.object({
+      ruleName: v.string(),
+      criterion: v.string(),
+      clinicalEvidence: v.string(),
+    }))),
     missingFields: v.optional(v.array(v.string())),
+    selectedProvider: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.string(),
     archived: v.boolean(),
