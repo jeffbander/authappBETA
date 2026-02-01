@@ -92,11 +92,48 @@ export default function InputPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">
+            Session
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Provider
+              </label>
+              <select
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+              >
+                <option value="">Select Provider...</option>
+                {providers?.map((p) => (
+                  <option key={p._id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Date of Service
+              </label>
+              <input
+                type="date"
+                value={dateOfService}
+                onChange={(e) => setDateOfService(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">
             Patient Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 MRN *
@@ -109,17 +146,6 @@ export default function InputPage() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 placeholder="Enter MRN"
                 required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Date of Service
-              </label>
-              <input
-                type="date"
-                value={dateOfService}
-                onChange={(e) => setDateOfService(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
             <div>
@@ -159,24 +185,6 @@ export default function InputPage() {
             Clinical Information
           </h2>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Provider
-              </label>
-              <select
-                value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-              >
-                <option value="">Select Provider...</option>
-                {providers?.map((p) => (
-                  <option key={p._id} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-                <option value="Other">Other</option>
-              </select>
-            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Clinical Notes
