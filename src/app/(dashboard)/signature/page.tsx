@@ -34,7 +34,8 @@ export default function SignaturePage() {
 
     setSaving(true);
     try {
-      const dataUrl = sigRef.current.getTrimmedCanvas().toDataURL("image/png");
+      const canvas = sigRef.current.getCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
       const blob = await fetch(dataUrl).then((r) => r.blob());
 
       const uploadUrl = await generateUploadUrl();
