@@ -40,7 +40,7 @@ ${rulesText}
 Analyze the clinical information and return a JSON response with the following structure:
 {
   "decision": "APPROVED_CLEAN" | "APPROVED_NEEDS_LETTER" | "DENIED",
-  "recommendedStudy": "NUCLEAR" | "STRESS_ECHO" | "ECHO" | "VASCULAR",
+  "recommendedStudy": "NUCLEAR" | "STRESS_ECHO" | "ECHO" | "VASCULAR" | "NONE",
   "rationale": "Detailed explanation of the authorization decision",
   "supportingCriteria": [
     {
@@ -63,7 +63,7 @@ Analyze the clinical information and return a JSON response with the following s
 Important rules:
 1. If insurance is Medicare (traditional/original), auto-approve unless clinically inappropriate.
 2. Medicare Advantage should be treated as commercial insurance.
-3. Follow the study hierarchy: Nuclear > Stress Echo > Echo > Vascular.
+3. Follow the study hierarchy: Nuclear > Stress Echo > Echo > Vascular. Use NONE if no cardiac study is clinically appropriate.
 4. If critical clinical information is missing, set needsReview to true and list missing fields.
 5. Reference the specific authorization rule and criterion text that supports the decision. Quote the exact criterion from the rules. Structure the rationale as: clinical finding → matching rule citation.
 6. The "supportingCriteria" array must include every rule criterion that supports the decision. Each entry should cite the rule name, quote the exact criterion text, and describe the clinical evidence from the patient.

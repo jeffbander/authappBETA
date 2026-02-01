@@ -115,6 +115,8 @@ export default function ResultsPage() {
         return "Echocardiogram";
       case "VASCULAR":
         return "Vascular Study";
+      case "NONE":
+        return "No Study Appropriate";
       default:
         return study || "—";
     }

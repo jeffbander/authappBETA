@@ -26,7 +26,8 @@ export default defineSchema({
         v.literal("NUCLEAR"),
         v.literal("STRESS_ECHO"),
         v.literal("ECHO"),
-        v.literal("VASCULAR")
+        v.literal("VASCULAR"),
+        v.literal("NONE")
       )
     ),
     rationale: v.optional(v.string()),
