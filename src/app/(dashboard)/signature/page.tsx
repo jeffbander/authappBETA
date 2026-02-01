@@ -3,20 +3,18 @@
 import { useRef, useState } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { useMutation, useQuery } from "convex/react";
-import { useUser } from "@clerk/nextjs";
 import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { PenTool, Save, Trash2, Check } from "lucide-react";
 
 export default function SignaturePage() {
-  const { user } = useUser();
   const sigRef = useRef<SignatureCanvas>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState("");
 
-  const provider = useQuery(
-    api.providers.getByClerkUserId,
-    user?.id ? { clerkUserId: user.id } : "skip"
-  );
+  const providers = useQuery(api.providers.list);
+  const provider = providers?.find((p) => p._id === selectedProviderId) ?? null;
   const generateUploadUrl = useMutation(api.providers.generateUploadUrl);
   const saveSignature = useMutation(api.providers.saveSignature);
   const signatureUrl = useQuery(
@@ -48,7 +46,7 @@ export default function SignaturePage() {
       const { storageId } = await result.json();
 
       await saveSignature({
-        providerId: provider._id,
+        providerId: provider._id as Id<"providers">,
         signatureStorageId: storageId,
       });
 
@@ -60,19 +58,13 @@ export default function SignaturePage() {
     }
   };
 
-  if (!user) {
+  if (providers === undefined) {
     return (
       <div className="text-center py-12 text-slate-500">Loading...</div>
     );
   }
 
-  if (provider === undefined) {
-    return (
-      <div className="text-center py-12 text-slate-500">Loading...</div>
-    );
-  }
-
-  if (provider === null) {
+  if (providers.length === 0) {
     return (
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 mb-4">
@@ -81,9 +73,7 @@ export default function SignaturePage() {
         </h1>
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <p className="text-yellow-800">
-            No provider profile found for your account. Please ask an
-            administrator to create your provider profile in the Admin
-            &gt; Providers section and link it to your account.
+            No providers found. Please add a provider in Admin &gt; Providers first.
           </p>
         </div>
       </div>
@@ -104,13 +94,33 @@ export default function SignaturePage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <div className="mb-4">
-          <p className="text-sm text-slate-600">
-            Provider: <strong>{provider.name}</strong>,{" "}
-            {provider.credentials}
-          </p>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Provider
+          </label>
+          <select
+            value={selectedProviderId}
+            onChange={(e) => {
+              setSelectedProviderId(e.target.value);
+              setSaved(false);
+            }}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+          >
+            <option value="">Select Provider...</option>
+            {providers.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.name}, {p.credentials}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {signatureUrl && (
+        {!provider && (
+          <div className="text-center py-8 text-slate-400 text-sm">
+            Select a provider above to manage their signature.
+          </div>
+        )}
+
+        {provider && signatureUrl && (
           <div className="mb-6">
             <p className="text-xs font-medium text-slate-500 mb-2">
               Current Signature
@@ -125,51 +135,55 @@ export default function SignaturePage() {
           </div>
         )}
 
-        <div className="mb-4">
-          <p className="text-xs font-medium text-slate-500 mb-2">
-            {signatureUrl ? "Draw New Signature" : "Draw Signature"}
-          </p>
-          <div className="border-2 border-dashed border-slate-300 rounded-lg bg-white">
-            <SignatureCanvas
-              ref={sigRef}
-              canvasProps={{
-                className: "w-full h-48",
-                style: { width: "100%", height: "12rem" },
-              }}
-              penColor="black"
-              backgroundColor="white"
-            />
-          </div>
-        </div>
+        {provider && (
+          <>
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-500 mb-2">
+                {signatureUrl ? "Draw New Signature" : "Draw Signature"}
+              </p>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg bg-white">
+                <SignatureCanvas
+                  ref={sigRef}
+                  canvasProps={{
+                    className: "w-full h-48",
+                    style: { width: "100%", height: "12rem" },
+                  }}
+                  penColor="black"
+                  backgroundColor="white"
+                />
+              </div>
+            </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {saved ? (
-              <>
-                <Check className="w-4 h-4" />
-                Saved!
-              </>
-            ) : saving ? (
-              "Saving..."
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Save Signature
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleClear}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-200 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear
-          </button>
-        </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {saved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved!
+                  </>
+                ) : saving ? (
+                  "Saving..."
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Signature
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleClear}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-200 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
