@@ -94,13 +94,13 @@ Important rules:
       const result = JSON.parse(jsonText);
 
       const status = result.needsReview ? "NEEDS_REVIEW" : "COMPLETE";
-      const decision = result.needsReview ? undefined : result.decision;
+      const decision = result.needsReview ? undefined : (result.decision || undefined);
 
       await ctx.runMutation(api.patients.updateWithResults, {
         patientId: args.patientId,
         status,
         decision,
-        recommendedStudy: result.recommendedStudy,
+        recommendedStudy: result.recommendedStudy || undefined,
         rationale: result.rationale,
         denialReason: result.denialReason || undefined,
         extractedPatientName: result.extractedPatientName || undefined,
