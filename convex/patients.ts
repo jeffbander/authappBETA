@@ -118,6 +118,23 @@ export const archive = mutation({
   },
 });
 
+export const resetForReprocessing = mutation({
+  args: {
+    patientId: v.id("patients"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.patientId, {
+      status: "PROCESSING",
+      decision: undefined,
+      recommendedStudy: undefined,
+      rationale: undefined,
+      denialReason: undefined,
+      supportingCriteria: undefined,
+      missingFields: undefined,
+    });
+  },
+});
+
 export const updatePdfUrl = mutation({
   args: {
     patientId: v.id("patients"),

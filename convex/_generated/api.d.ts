@@ -8,10 +8,13 @@
  * @module
  */
 
+import type * as feedback from "../feedback.js";
 import type * as patients from "../patients.js";
 import type * as processing from "../processing.js";
 import type * as providers from "../providers.js";
+import type * as reviews from "../reviews.js";
 import type * as rules from "../rules.js";
+import type * as training from "../training.js";
 
 import type {
   ApiFromModules,
@@ -20,10 +23,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  feedback: typeof feedback;
   patients: typeof patients;
   processing: typeof processing;
   providers: typeof providers;
+  reviews: typeof reviews;
   rules: typeof rules;
+  training: typeof training;
 }>;
 
 /**

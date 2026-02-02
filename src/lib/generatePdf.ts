@@ -165,6 +165,163 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
   return doc;
 }
 
+interface ReviewSummaryData {
+  providerName: string;
+  providerCredentials: string;
+  approvedCount: number;
+  heldCount: number;
+  patients: {
+    mrn: string;
+    patientName: string;
+    dateOfService: string;
+    recommendedStudy: string;
+    decision: string;
+    reviewStatus: string;
+    rationale: string;
+  }[];
+}
+
+export function generateReviewSummaryPdf(data: ReviewSummaryData): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  // Header
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 51, 102);
+  doc.text("MSW Heart Cardiology", pageWidth / 2, y, { align: "center" });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Doctor Review Summary", pageWidth / 2, y, { align: "center" });
+  y += 5;
+
+  // Divider
+  doc.setDrawColor(0, 51, 102);
+  doc.setLineWidth(0.5);
+  doc.line(20, y, pageWidth - 20, y);
+  y += 10;
+
+  // Provider Info
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("Reviewing Physician", 20, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    `${data.providerName}${data.providerCredentials ? `, ${data.providerCredentials}` : ""}`,
+    20,
+    y
+  );
+  y += 10;
+
+  // Summary Stats
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Summary", 20, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Total Patients: ${data.patients.length}`, 20, y);
+  y += 5;
+  doc.setTextColor(0, 128, 0);
+  doc.text(`Approved: ${data.approvedCount}`, 20, y);
+  y += 5;
+  doc.setTextColor(200, 100, 0);
+  doc.text(`Held: ${data.heldCount}`, 20, y);
+  y += 5;
+  doc.setTextColor(150, 150, 150);
+  doc.text(
+    `Pending: ${data.patients.length - data.approvedCount - data.heldCount}`,
+    20,
+    y
+  );
+  doc.setTextColor(0, 0, 0);
+  y += 10;
+
+  // Patient Table
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Patient Details", 20, y);
+  y += 8;
+
+  // Table header
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(20, y - 4, pageWidth - 40, 7, "F");
+  doc.text("MRN", 22, y);
+  doc.text("Patient", 45, y);
+  doc.text("DOS", 85, y);
+  doc.text("Study", 110, y);
+  doc.text("AI Decision", 145, y);
+  doc.text("Review", 175, y);
+  y += 6;
+
+  doc.setFont("helvetica", "normal");
+  for (const p of data.patients) {
+    if (y > 265) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(p.mrn, 22, y);
+    doc.text(p.patientName.substring(0, 18), 45, y);
+    doc.text(p.dateOfService, 85, y);
+    doc.text(p.recommendedStudy.substring(0, 16), 110, y);
+    doc.text(formatDecision(p.decision).substring(0, 14), 145, y);
+    doc.text(p.reviewStatus, 175, y);
+    y += 5;
+
+    // Truncated rationale
+    if (p.rationale) {
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      const truncated =
+        p.rationale.length > 120
+          ? p.rationale.substring(0, 120) + "..."
+          : p.rationale;
+      const rationaleLines = doc.splitTextToSize(truncated, pageWidth - 44);
+      doc.text(rationaleLines, 22, y);
+      y += rationaleLines.length * 4 + 2;
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+    }
+  }
+
+  y += 5;
+
+  // Check if we need a new page for signature
+  if (y > 250) {
+    doc.addPage();
+    y = 20;
+  }
+
+  // Signature block
+  doc.setDrawColor(0, 0, 0);
+  doc.line(20, y, 100, y);
+  y += 5;
+  doc.setFontSize(10);
+  doc.text(
+    `${data.providerName}${data.providerCredentials ? `, ${data.providerCredentials}` : ""}`,
+    20,
+    y
+  );
+  y += 8;
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
+  doc.text("CardioAuth - AI-Assisted Authorization System", 20, y + 4);
+
+  return doc;
+}
+
 function formatDecision(decision: string): string {
   switch (decision) {
     case "APPROVED_CLEAN":

@@ -23,10 +23,26 @@ export const processPatient = action({
       .map((r) => `## ${r.ruleName}\n${r.ruleContent}`)
       .join("\n\n");
 
+    // Fetch active training examples for few-shot injection
+    const trainingExamples = await ctx.runQuery(api.training.listActive);
+    let referenceCasesSection = "";
+    const usedExampleIds: string[] = [];
+    if (trainingExamples.length > 0) {
+      const examples = trainingExamples.slice(0, 5);
+      usedExampleIds.push(...examples.map((e) => e._id));
+      const casesText = examples
+        .map(
+          (e, i) =>
+            `### Case ${i + 1}\n**Pattern:** ${e.clinicalPatternSummary}\n**Correct Decision:** ${e.correctDecision}\n**Rationale:** ${e.rationale}\n**Rules Applied:** ${e.rulesCited.join(", ")}`
+        )
+        .join("\n\n");
+      referenceCasesSection = `\n\n## Reference Cases\nThe following are examples of correct authorization decisions based on MD review feedback. Use these as guidance for similar cases:\n\n${casesText}\n`;
+    }
+
     const prompt = `You are a cardiology study authorization AI assistant for MSW Heart Cardiology. Analyze the following patient information and determine authorization status based on the rules provided.
 
 ## Authorization Rules
-${rulesText}
+${rulesText}${referenceCasesSection}
 
 ## Patient Information
 - MRN: ${patient.mrn}
@@ -232,6 +248,13 @@ Important rules:
         supportingCriteria: result.supportingCriteria || undefined,
         missingFields: result.missingFields || undefined,
       });
+
+      // Increment usage counts for training examples used in this prompt
+      if (usedExampleIds.length > 0) {
+        await ctx.runMutation(api.training.incrementUsage, {
+          exampleIds: usedExampleIds as any,
+        });
+      }
     } catch (error) {
       console.error("AI processing error:", error);
       await ctx.runMutation(api.patients.updateWithResults, {

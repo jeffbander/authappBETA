@@ -69,4 +69,66 @@ export default defineSchema({
     updatedAt: v.number(),
     updatedBy: v.string(),
   }).index("by_ruleName", ["ruleName"]),
+
+  reviews: defineTable({
+    patientId: v.id("patients"),
+    reviewStatus: v.union(
+      v.literal("PENDING"),
+      v.literal("APPROVED"),
+      v.literal("HELD")
+    ),
+    reviewerId: v.optional(v.id("providers")),
+    reviewerClerkUserId: v.optional(v.string()),
+    reviewerName: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_patientId", ["patientId"])
+    .index("by_reviewerId", ["reviewerId"])
+    .index("by_reviewStatus", ["reviewStatus"]),
+
+  decisionFeedback: defineTable({
+    patientId: v.id("patients"),
+    reviewId: v.optional(v.id("reviews")),
+    reviewerClerkUserId: v.string(),
+    category: v.union(
+      v.literal("DOCUMENTATION_ISSUE"),
+      v.literal("CLINICAL_REASONING_ERROR"),
+      v.literal("MISSING_CONTEXT"),
+      v.literal("RULE_MISAPPLICATION"),
+      v.literal("INSURANCE_RULE_UPDATE"),
+      v.literal("OTHER")
+    ),
+    suggestedDecision: v.optional(v.string()),
+    notes: v.string(),
+    suggestedRuleUpdate: v.optional(v.string()),
+    isTrainingExample: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_patientId", ["patientId"])
+    .index("by_category", ["category"])
+    .index("by_isTrainingExample", ["isTrainingExample"]),
+
+  trainingExamples: defineTable({
+    feedbackId: v.optional(v.id("decisionFeedback")),
+    clinicalPatternSummary: v.string(),
+    correctDecision: v.string(),
+    rationale: v.string(),
+    rulesCited: v.array(v.string()),
+    isActive: v.boolean(),
+    usageCount: v.number(),
+    createdAt: v.number(),
+    createdBy: v.string(),
+  })
+    .index("by_isActive", ["isActive"]),
+
+  rulePerformance: defineTable({
+    ruleName: v.string(),
+    timesApplied: v.number(),
+    timesAgreed: v.number(),
+    timesDisagreed: v.number(),
+    lastUpdated: v.number(),
+  })
+    .index("by_ruleName", ["ruleName"]),
 });

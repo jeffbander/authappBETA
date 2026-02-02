@@ -3,7 +3,15 @@ import { v } from "convex/values";
 
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db.query("providers").collect();
+    const providers = await ctx.db.query("providers").collect();
+    return Promise.all(
+      providers.map(async (p) => ({
+        ...p,
+        signatureUrl: p.signatureStorageId
+          ? await ctx.storage.getUrl(p.signatureStorageId)
+          : null,
+      }))
+    );
   },
 });
 

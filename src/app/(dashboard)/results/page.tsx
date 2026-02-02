@@ -128,14 +128,14 @@ export default function ResultsPage() {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
             <CheckCircle2 className="w-3 h-3" />
-            Approved
+            Test Identified
           </span>
         );
       case "APPROVED_NEEDS_LETTER":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
             <FileWarning className="w-3 h-3" />
-            Needs Letter
+            Test Identified - Needs Letter
           </span>
         );
       case "DENIED":
