@@ -126,7 +126,19 @@ Important rules:
    - If a rule says "within 2 years" or ">5 years", calculate the exact time elapsed and apply the threshold literally.
 18. RESPECT PROVIDER'S OWN FOLLOW-UP PLAN: If the clinical notes document the provider's own follow-up timeline (e.g., "Follow up in 1 year August 2026"), and the current Date of Service is BEFORE that planned date, this is an early repeat study. Flag this discrepancy explicitly in the rationale. Unless there are NEW symptoms or clinical changes documented since the last study that justify early repeat imaging, the study should be flagged as premature. Set needsReview to true and note: "The provider's own notes indicate follow-up planned for [date]. The current request at [DOS] is [X months] early. No new symptoms or clinical changes are documented to justify early imaging."
 19. STABLE DISEASE WITHOUT NEW FINDINGS: If prior studies show stable/unchanged findings over multiple time points (e.g., "No change from 2024, 2021"), and no new symptoms or clinical changes are documented, routine surveillance should follow standard intervals. Stable disease does NOT justify accelerated imaging schedules. Explicitly note the stability in the rationale and whether the timing is appropriate.
-20. Return ONLY the JSON, no other text.`;
+20. DUPLICATE/RECENT TESTING DENIAL: If the same or equivalent study was performed within 90 days and the results are already known, a repeat study is almost NEVER appropriate. Specifically:
+   - Check the Previous Studies field AND the clinical notes for any mention of the same study type recently performed.
+   - Calculate the exact number of days between the prior study and the Date of Service.
+   - If the same study was done within 90 days, DENY unless there is a documented acute clinical change (e.g., new MI, acute decompensation, post-intervention reassessment) that specifically requires reimaging.
+   - "New or worsening symptoms" alone do NOT justify repeating a test whose results are already known — the clinical question has already been answered.
+   - State in the rationale: "A [study type] was performed on [date], [X days] ago, which showed [results]. Repeating this test will not provide new diagnostic information."
+21. CLINICAL NEXT-STEP LOGIC: The AI must evaluate whether the requested study is the appropriate NEXT step in the diagnostic pathway, not just whether the patient meets criteria for that study in isolation:
+   - POSITIVE STRESS TEST (ischemia demonstrated) → Next step is cardiac catheterization, NOT repeat stress testing. If a prior stress test already showed ischemia/reversible defects, approving another stress test is clinically inappropriate. DENY the repeat stress test and note that cardiac catheterization is the indicated next step.
+   - ABNORMAL ECHO showing severe valve disease → Next step may be surgical evaluation or TEE, not repeat TTE.
+   - Known multi-vessel CAD on cath → Stress testing adds no value; management decisions are based on cath findings.
+   - If the AI's own analysis concludes a different study or intervention is more appropriate, it MUST NOT approve the requested study. Instead, set needsReview to true and recommend the appropriate next step. The AI must NEVER contradict its own clinical reasoning — if the rationale says "the clinical focus should be on catheterization," then the decision CANNOT be to approve a repeat stress test.
+22. INTERNAL CONSISTENCY CHECK: Before finalizing the decision, review the entire rationale for self-contradictions. If the rationale identifies reasons the study may not be appropriate (e.g., "clinical focus should be on catheterization" or "premature repeat" or "documentation insufficient"), the decision MUST reflect those concerns. Do NOT approve a study while simultaneously noting it may be inappropriate. If there is ANY concern raised in the rationale, the decision should be NEEDS_REVIEW or DENIED, not APPROVED.
+23. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
