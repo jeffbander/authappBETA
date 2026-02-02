@@ -115,7 +115,12 @@ Important rules:
    (c) WHAT RESOLVES IT: The notes must document what relieves the symptom — rest, nitroglycerin, cessation of activity, or other. If the notes do not state what resolves the symptom, this is a documentation gap that must be flagged.
    In the rationale, explicitly check each of these three elements and state whether they are present or missing. For example: "Temporal status: Present — 'progressive dyspnea'. Exertional relationship: Present — 'on exertion'. Resolution: MISSING — notes do not state what resolves the symptoms. Recommend provider document what relieves the symptoms."
    This applies regardless of insurance type — even Medicare patients need proper documentation.
-16. Return ONLY the JSON, no other text.`;
+16. PROACTIVE STUDY RECOMMENDATION: Even if the clinical notes do not explicitly request a specific cardiac study, you MUST evaluate whether the patient qualifies for any study (nuclear stress test, stress echocardiogram, echocardiogram, or vascular study) based on their diagnoses, symptoms, risk factors, and cardiac history. If the clinical picture suggests a study is appropriate:
+   - Recommend the most appropriate study per the study hierarchy and authorization rules.
+   - Explain in the rationale why this patient may benefit from the study, citing their clinical findings.
+   - If the documentation is insufficient to fully authorize the study but the patient likely qualifies, still recommend the study in the recommendedStudy field, set needsReview to true, and explain what additional documentation the provider should add to get the study authorized. Frame it as: "Based on the patient's [clinical findings], a [study type] may be clinically appropriate. To authorize this study, the provider should document: [specific missing elements]."
+   - The goal is to help the provider identify studies their patients qualify for, not just rubber-stamp what was requested.
+17. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
