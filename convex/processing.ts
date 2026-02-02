@@ -156,7 +156,34 @@ Important rules:
    3. [Specific missing element] — e.g., 'What resolves the symptoms (rest, nitroglycerin, etc.)'
    ..."
    This is NOT optional. Every non-approved case must tell the provider the exact path to getting the study authorized. The goal is to help the provider strengthen their documentation so the patient can get the study if it's truly needed. Be specific — don't say "more documentation needed," say exactly WHAT documentation.
-27. Return ONLY the JSON, no other text.`;
+27. PRIOR TEST REPEAT INTERVALS BASED ON RESULTS: Repeat testing intervals depend on what the prior study showed:
+   A) NORMAL prior test + stable symptoms → minimum 12 months before repeat:
+      - If a prior study of the same type was normal/negative and symptoms are described as stable, unchanged, or not worsened → DENY if less than 12 months (365 days) have elapsed since the prior study.
+      - "Exercise tolerance is stable," "symptoms unchanged," "no new complaints" = stable symptoms = NO repeat justified.
+      - Calculate exact days since the prior normal test. If <365 days with stable symptoms → DENY.
+      - State in rationale: "Prior [study] on [date] ([X days] ago) was NORMAL. Symptoms are described as stable/unchanged. There is no clinical indication to repeat this study within 12 months of a normal result."
+      - Exception: A new acute clinical event (MI, hospitalization, new arrhythmia, post-intervention, acute decompensation) justifies earlier repeat even after a normal test.
+   B) ABNORMAL prior test with medical management → 6-12 month repeat may be appropriate:
+      - If a prior study showed abnormal findings AND the patient was started on or adjusted medical management, a follow-up at 6-12 months may be warranted to assess treatment response.
+      - Must document: (1) what the abnormality was, (2) what treatment was initiated or changed, and (3) what specific clinical question the repeat study will answer.
+      - This is NOT automatic — still requires clinical justification beyond just "had an abnormal test."
+28. ALTERNATIVE NON-CARDIAC DIAGNOSES: Before attributing symptoms to a cardiac etiology and approving a cardiac study, the AI must consider whether non-cardiac explanations are more likely given the full clinical picture. Common non-cardiac causes of symptoms that mimic cardiac disease:
+   - Obesity / deconditioning → dyspnea on exertion, exercise intolerance, fatigue
+   - Hypothyroidism → fatigue, exercise intolerance, weight gain
+   - Anemia → dyspnea, fatigue, tachycardia
+   - GERD → chest pain, chest discomfort (non-exertional)
+   - Musculoskeletal → chest wall pain, positional pain
+   - Anxiety / panic disorder → palpitations, chest tightness, dyspnea
+   - Pulmonary disease (COPD, asthma) → dyspnea, exercise intolerance
+   - Post-CVA deconditioning → exercise intolerance, fatigue
+   If the patient has documented non-cardiac conditions that plausibly explain the reported symptoms AND prior cardiac testing was normal, the AI should flag that the symptoms are more likely non-cardiac in origin. Set needsReview to true and state: "Patient has [specific conditions] which may better explain the reported symptoms of [symptoms]. Prior cardiac testing on [date] was normal, making a new cardiac etiology less likely."
+29. NONOBSTRUCTIVE CAD IS NOT AN INDICATION FOR REPEAT TESTING: "Nonobstructive CAD" (plaque without hemodynamically significant stenosis) found on prior imaging does NOT constitute a positive finding that warrants repeat stress testing. Nonobstructive CAD means:
+   - No hemodynamically significant coronary disease was found
+   - The prior test effectively ruled out obstructive disease causing ischemia
+   - Repeating the study will show the same nonobstructive disease — no new diagnostic information
+   - Appropriate management is medical therapy (statins, aspirin, lifestyle modification), NOT further cardiac imaging
+   If "nonobstructive CAD" is cited as justification for a repeat study, DENY unless there is a new acute event (MI, acute coronary syndrome, new arrhythmia). State: "Nonobstructive CAD is a stable finding managed with medical therapy. It does not indicate ischemia and does not justify repeat stress testing. A repeat study will not provide new diagnostic information."
+30. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
