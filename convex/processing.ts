@@ -192,16 +192,20 @@ Important rules:
     try {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
+        max_tokens: 128000,
+        thinking: {
+          type: "enabled",
+          budget_tokens: 10000,
+        },
         messages: [{ role: "user", content: prompt }],
       });
 
-      const content = response.content[0];
-      if (content.type !== "text") {
-        throw new Error("Unexpected response type");
+      const textBlock = response.content.find((block: any) => block.type === "text");
+      if (!textBlock || textBlock.type !== "text") {
+        throw new Error("No text content in response");
       }
 
-      let jsonText = content.text.trim();
+      let jsonText = (textBlock as any).text.trim();
       const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         jsonText = jsonMatch[0];
