@@ -201,12 +201,21 @@ export default function ReviewPage() {
     doc.save(`review_summary_${format(new Date(), "yyyy-MM-dd")}.pdf`);
   };
 
-  const getDecisionBadge = (status: string, decision?: string) => {
+  const getDecisionBadge = (status: string, decision?: string, recommendedStudy?: string) => {
     if (status === "NEEDS_REVIEW") {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
           <AlertCircle className="w-3 h-3" />
           Needs Review
+        </span>
+      );
+    }
+    // Treat "no study appropriate" as denied regardless of AI decision
+    if (recommendedStudy === "NONE") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+          <XCircle className="w-3 h-3" />
+          Denied
         </span>
       );
     }
@@ -415,7 +424,7 @@ export default function ReviewPage() {
                               ({patient.extractedPatientName})
                             </span>
                           )}
-                          {getDecisionBadge(patient.status, patient.decision)}
+                          {getDecisionBadge(patient.status, patient.decision, patient.recommendedStudy)}
                           <span className="text-xs text-slate-400">
                             {formatStudyName(patient.recommendedStudy)}
                           </span>
@@ -529,7 +538,7 @@ export default function ReviewPage() {
 
                           {/* Action Buttons */}
                           <div className="mt-4 flex gap-2">
-                            {patient.status === "COMPLETE" && (patient.decision === "APPROVED_CLEAN" || patient.decision === "APPROVED_NEEDS_LETTER") && (
+                            {patient.status === "COMPLETE" && (patient.decision === "APPROVED_CLEAN" || patient.decision === "APPROVED_NEEDS_LETTER") && patient.recommendedStudy !== "NONE" && (
                               <>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleApprove(patient._id); }}
@@ -549,7 +558,7 @@ export default function ReviewPage() {
                                 </button>
                               </>
                             )}
-                            {patient.status === "COMPLETE" && patient.decision === "DENIED" && (
+                            {patient.status === "COMPLETE" && (patient.decision === "DENIED" || patient.recommendedStudy === "NONE") && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleFeedbackOnlyClick(patient._id); }}
                                 className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-slate-600 rounded-lg hover:bg-slate-700 transition-colors"

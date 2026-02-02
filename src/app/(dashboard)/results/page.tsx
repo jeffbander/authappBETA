@@ -105,7 +105,8 @@ export default function ResultsPage() {
 
   const getStatusBadge = (
     status: string,
-    decision?: string
+    decision?: string,
+    recommendedStudy?: string
   ) => {
     if (status === "PROCESSING") {
       return (
@@ -120,6 +121,15 @@ export default function ResultsPage() {
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
           <AlertCircle className="w-3 h-3" />
           Needs Review
+        </span>
+      );
+    }
+    // Treat "no study appropriate" as denied regardless of AI decision
+    if (recommendedStudy === "NONE") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+          <XCircle className="w-3 h-3" />
+          Denied
         </span>
       );
     }
@@ -279,7 +289,7 @@ export default function ResultsPage() {
                         </span>
                       )}
                     </div>
-                    {getStatusBadge(patient.status, patient.decision)}
+                    {getStatusBadge(patient.status, patient.decision, patient.recommendedStudy)}
                     <span className="text-xs text-slate-400">
                       DOS: {patient.dateOfService}
                     </span>
