@@ -192,7 +192,7 @@ Important rules:
     try {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 128000,
+        max_tokens: 16000,
         thinking: {
           type: "enabled",
           budget_tokens: 10000,
