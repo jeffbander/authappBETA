@@ -138,7 +138,25 @@ Important rules:
    - Known multi-vessel CAD on cath → Stress testing adds no value; management decisions are based on cath findings.
    - If the AI's own analysis concludes a different study or intervention is more appropriate, it MUST NOT approve the requested study. Instead, set needsReview to true and recommend the appropriate next step. The AI must NEVER contradict its own clinical reasoning — if the rationale says "the clinical focus should be on catheterization," then the decision CANNOT be to approve a repeat stress test.
 22. INTERNAL CONSISTENCY CHECK: Before finalizing the decision, review the entire rationale for self-contradictions. If the rationale identifies reasons the study may not be appropriate (e.g., "clinical focus should be on catheterization" or "premature repeat" or "documentation insufficient"), the decision MUST reflect those concerns. Do NOT approve a study while simultaneously noting it may be inappropriate. If there is ANY concern raised in the rationale, the decision should be NEEDS_REVIEW or DENIED, not APPROVED.
-23. Return ONLY the JSON, no other text.`;
+23. PRIOR STUDY RESULTS REQUIRED: When a prior study is cited to justify authorization (e.g., "prior carotid duplex" to support surveillance), the RESULTS of that prior study must be documented in the clinical notes. If a prior study is mentioned but its results are not provided, you CANNOT assume it supports the authorization. Specifically:
+   - If criteria require a specific finding from a prior study (e.g., "stenosis >50%"), the actual percentage or result must be stated in the notes. "Prior carotid duplex performed on [date]" without results is INSUFFICIENT — you need to know what it showed.
+   - Do NOT infer or assume prior study results. If the notes say a carotid duplex was done but don't state the stenosis percentage, you cannot claim the patient meets the ">50% stenosis" criterion.
+   - Flag missing prior study results in missingFields and set needsReview to true. State: "Prior [study] from [date] is referenced but results are not documented. Cannot determine if [specific criterion] is met without knowing the results."
+24. SYMPTOM-STUDY MATCH: The patient's symptoms must be clinically relevant to the specific study being authorized. Do NOT approve a study based on symptoms that are unrelated to what that study evaluates:
+   - CAROTID studies: Requires carotid-relevant symptoms (TIA, stroke, amaurosis fugax, carotid bruit, dizziness/syncope with vascular etiology) OR documented stenosis requiring surveillance. Non-exertional chest pain and anxiety-related palpitations are NOT carotid indications.
+   - LOWER EXTREMITY ARTERIAL studies: Requires arterial symptoms (claudication, non-healing wounds, abnormal ABI, rest pain). NOT indicated for chest pain or palpitations.
+   - LOWER EXTREMITY VENOUS studies: For DVT/venous insufficiency — completely different from arterial disease. A prior venous study does NOT justify arterial surveillance and vice versa. Do not conflate venous and arterial studies.
+   - CARDIAC studies (echo, stress): Requires cardiac symptoms (chest pain, dyspnea, syncope, etc.)
+   - If the documented symptoms do not match the study being requested, flag this mismatch explicitly in the rationale and set needsReview to true.
+25. STUDY TYPE ACCURACY: Do not conflate different types of vascular studies. Venous studies (DVT screening, venous insufficiency) are fundamentally different from arterial studies (carotid duplex, lower extremity arterial). Citing a venous study as justification for arterial surveillance is clinically incorrect. Each study type must be evaluated against its own specific criteria.
+26. QUALIFICATION GAP ANALYSIS: For EVERY case that does not strictly meet authorization criteria — whether flagged as NEEDS_REVIEW or DENIED — the rationale MUST include a clear "What is needed to qualify" section. This should be a specific, actionable list telling the provider exactly what documentation or clinical elements are missing. Format it as:
+   "TO QUALIFY FOR [study type], the following must be documented:
+   1. [Specific missing element] — e.g., 'Stenosis percentage from prior carotid duplex (currently not documented)'
+   2. [Specific missing element] — e.g., 'Symptom onset described as new, recurrent, or worsening'
+   3. [Specific missing element] — e.g., 'What resolves the symptoms (rest, nitroglycerin, etc.)'
+   ..."
+   This is NOT optional. Every non-approved case must tell the provider the exact path to getting the study authorized. The goal is to help the provider strengthen their documentation so the patient can get the study if it's truly needed. Be specific — don't say "more documentation needed," say exactly WHAT documentation.
+27. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
