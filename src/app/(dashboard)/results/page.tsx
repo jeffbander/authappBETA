@@ -51,20 +51,33 @@ export default function ResultsPage() {
 
     const providerNameToMatch = patient.selectedProvider || patient.extractedPhysician;
     if (providerNameToMatch && providersWithSigs) {
-      const match = providersWithSigs.find(
-        (p) => p.name === providerNameToMatch
-      );
+      const normalizedInput = providerNameToMatch.toLowerCase().replace(/[^a-z]/g, "");
+      const match = providersWithSigs.find((p) => {
+        const normalizedProvider = p.name.toLowerCase().replace(/[^a-z]/g, "");
+        return (
+          normalizedProvider === normalizedInput ||
+          normalizedInput.includes(normalizedProvider) ||
+          normalizedProvider.includes(normalizedInput)
+        );
+      });
       if (match) {
         providerName = match.name;
         providerCredentials = match.credentials;
         if (match.signatureUrl) {
           try {
-            const response = await fetch(match.signatureUrl);
-            const blob = await response.blob();
-            signatureDataUrl = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
+            signatureDataUrl = await new Promise<string>((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx?.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL("image/png"));
+              };
+              img.onerror = reject;
+              img.src = match.signatureUrl!;
             });
           } catch {
             // Signature fetch failed, continue without it
