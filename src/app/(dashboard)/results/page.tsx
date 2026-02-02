@@ -31,6 +31,7 @@ export default function ResultsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const providers = useQuery(api.providers.list);
+  const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
   const patients = useQuery(api.patients.list, {
     statusFilter: statusFilter || undefined,
     dateOfServiceFilter: dateFilter || undefined,
@@ -43,7 +44,35 @@ export default function ResultsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDownloadPdf = (patient: NonNullable<typeof patients>[number]) => {
+  const handleDownloadPdf = async (patient: NonNullable<typeof patients>[number]) => {
+    let signatureDataUrl: string | undefined;
+    let providerName: string | undefined;
+    let providerCredentials: string | undefined;
+
+    const providerNameToMatch = patient.selectedProvider || patient.extractedPhysician;
+    if (providerNameToMatch && providersWithSigs) {
+      const match = providersWithSigs.find(
+        (p) => p.name === providerNameToMatch
+      );
+      if (match) {
+        providerName = match.name;
+        providerCredentials = match.credentials;
+        if (match.signatureUrl) {
+          try {
+            const response = await fetch(match.signatureUrl);
+            const blob = await response.blob();
+            signatureDataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          } catch {
+            // Signature fetch failed, continue without it
+          }
+        }
+      }
+    }
+
     const doc = generateAttestationPdf({
       patientName: patient.extractedPatientName || "",
       patientDob: patient.extractedDob || "",
@@ -54,6 +83,9 @@ export default function ResultsPage() {
       rationale: patient.rationale || "",
       decision: patient.decision || "",
       supportingCriteria: patient.supportingCriteria || undefined,
+      signatureDataUrl,
+      providerName,
+      providerCredentials,
     });
     doc.save(`attestation_${patient.mrn}_${patient.dateOfService}.pdf`);
   };

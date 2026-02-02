@@ -86,3 +86,19 @@ export const getSignatureUrl = query({
     return await ctx.storage.getUrl(args.storageId);
   },
 });
+
+export const listWithSignatureUrls = query({
+  handler: async (ctx) => {
+    const providers = await ctx.db.query("providers").collect();
+    const results = await Promise.all(
+      providers.map(async (p) => ({
+        name: p.name,
+        credentials: p.credentials,
+        signatureUrl: p.signatureStorageId
+          ? await ctx.storage.getUrl(p.signatureStorageId)
+          : null,
+      }))
+    );
+    return results;
+  },
+});
