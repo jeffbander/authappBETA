@@ -19,6 +19,9 @@ interface PdfData {
   providerName?: string;
   providerCredentials?: string;
   supportingCriteria?: SupportingCriterion[];
+  // Qualification flow fields
+  qualifiedViaSymptom?: boolean;
+  qualifyingRationale?: string;
 }
 
 export function generateAttestationPdf(data: PdfData): jsPDF {
@@ -110,17 +113,60 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
     y += 4;
   }
 
-  // Rationale
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text("Clinical Rationale", 20, y);
-  y += 8;
+  // Rationale section(s)
+  if (data.qualifiedViaSymptom && data.qualifyingRationale) {
+    // Show original AI assessment first
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Original AI Assessment", 20, y);
+    y += 8;
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const rationaleLines = doc.splitTextToSize(data.rationale, pageWidth - 40);
-  doc.text(rationaleLines, 20, y);
-  y += rationaleLines.length * 5 + 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const originalLines = doc.splitTextToSize(data.rationale, pageWidth - 40);
+    doc.text(originalLines, 20, y);
+    y += originalLines.length * 5 + 8;
+
+    // Check if we need a new page
+    if (y > 240) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // Show physician qualification
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 100, 0);
+    doc.text("Physician Qualification", 20, y);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const qualifyingLines = doc.splitTextToSize(data.qualifyingRationale, pageWidth - 40);
+    doc.text(qualifyingLines, 20, y);
+    y += qualifyingLines.length * 5 + 4;
+
+    // Add note about qualification
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 100, 100);
+    doc.text("* Study qualified based on physician-confirmed symptoms", 20, y);
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+  } else {
+    // Standard rationale display
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Clinical Rationale", 20, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const rationaleLines = doc.splitTextToSize(data.rationale, pageWidth - 40);
+    doc.text(rationaleLines, 20, y);
+    y += rationaleLines.length * 5 + 10;
+  }
 
   // Check if we need a new page for signature
   if (y > 240) {

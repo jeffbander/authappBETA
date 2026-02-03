@@ -46,6 +46,11 @@ export default defineSchema({
     }))),
     missingFields: v.optional(v.array(v.string())),
     selectedProvider: v.optional(v.string()),
+    // Qualification flow fields (for upgrading DENIED to approved via symptoms)
+    qualifiedViaSymptom: v.optional(v.boolean()),
+    qualifyingSymptom: v.optional(v.string()),
+    qualifyingRationale: v.optional(v.string()),
+    originalDecision: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.string(),
     archived: v.boolean(),

@@ -146,3 +146,30 @@ export const updatePdfUrl = mutation({
     });
   },
 });
+
+export const applyQualifyingSuggestion = mutation({
+  args: {
+    patientId: v.id("patients"),
+    symptom: v.string(),
+    studyType: v.union(
+      v.literal("NUCLEAR"),
+      v.literal("STRESS_ECHO"),
+      v.literal("ECHO"),
+      v.literal("VASCULAR")
+    ),
+    qualifyingRationale: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db.get(args.patientId);
+    if (!patient) throw new Error("Patient not found");
+
+    await ctx.db.patch(args.patientId, {
+      originalDecision: patient.decision || "DENIED",
+      decision: "APPROVED_CLEAN",
+      recommendedStudy: args.studyType,
+      qualifiedViaSymptom: true,
+      qualifyingSymptom: args.symptom,
+      qualifyingRationale: args.qualifyingRationale,
+    });
+  },
+});

@@ -20,8 +20,16 @@ import {
   Clock,
   RefreshCw,
   MessageSquare,
+  Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import { generateReviewSummaryPdf } from "@/lib/generatePdf";
+import {
+  getSuggestionsForPatient,
+  generateQualifyingRationale,
+  type EligibleSuggestion,
+  type StudyType,
+} from "@/lib/studySuggestions";
 
 type ReviewStatusFilter = "ALL" | "PENDING" | "APPROVED" | "HELD";
 
@@ -50,6 +58,10 @@ export default function ReviewPage() {
   const [feedbackOnlyMode, setFeedbackOnlyMode] = useState(false);
   const [reprocessingPatientId, setReprocessingPatientId] = useState<string | null>(null);
 
+  // Qualification suggestion state
+  const [selectedSymptom, setSelectedSymptom] = useState<Record<string, string>>({});
+  const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
+
   const providers = useQuery(api.providers.list);
   const clerkProvider = useQuery(
     api.providers.getByClerkUserId,
@@ -73,6 +85,7 @@ export default function ReviewPage() {
   const updateRulePerformanceMutation = useMutation(api.feedback.updateRulePerformance);
   const resetForReprocessingMutation = useMutation(api.patients.resetForReprocessing);
   const processPatientAction = useAction(api.processing.processPatient);
+  const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
 
   const handleApprove = async (patientId: Id<"patients">) => {
     if (!resolvedProvider) return;
@@ -175,6 +188,37 @@ export default function ReviewPage() {
     }
   };
 
+  const handleApplyQualification = async (
+    patientId: Id<"patients">,
+    suggestion: EligibleSuggestion,
+    symptom: string
+  ) => {
+    setApplyingQualificationId(patientId);
+    try {
+      const rationale = generateQualifyingRationale(
+        symptom,
+        suggestion.matchingDiagnosis,
+        suggestion.suggestion.studyName
+      );
+      await applyQualifyingSuggestionMutation({
+        patientId,
+        symptom,
+        studyType: suggestion.suggestion.studyType,
+        qualifyingRationale: rationale,
+      });
+      // Clear selection after success
+      setSelectedSymptom((prev) => {
+        const updated = { ...prev };
+        delete updated[patientId];
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error applying qualification:", error);
+    } finally {
+      setApplyingQualificationId(null);
+    }
+  };
+
   const handleDownloadSummary = () => {
     if (!grouped) return;
     const allPatients = Object.entries(grouped).flatMap(([provider, patients]) =>
@@ -201,7 +245,7 @@ export default function ReviewPage() {
     doc.save(`review_summary_${format(new Date(), "yyyy-MM-dd")}.pdf`);
   };
 
-  const getDecisionBadge = (status: string, decision?: string, recommendedStudy?: string) => {
+  const getDecisionBadge = (status: string, decision?: string, recommendedStudy?: string, qualifiedViaSymptom?: boolean) => {
     if (status === "NEEDS_REVIEW") {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
@@ -216,6 +260,15 @@ export default function ReviewPage() {
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
           <XCircle className="w-3 h-3" />
           Denied
+        </span>
+      );
+    }
+    // Show starred badge for symptom-qualified approvals
+    if (qualifiedViaSymptom) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+          <Sparkles className="w-3 h-3" />
+          Test Identified*
         </span>
       );
     }
@@ -424,7 +477,7 @@ export default function ReviewPage() {
                               ({patient.extractedPatientName})
                             </span>
                           )}
-                          {getDecisionBadge(patient.status, patient.decision, patient.recommendedStudy)}
+                          {getDecisionBadge(patient.status, patient.decision, patient.recommendedStudy, (patient as any).qualifiedViaSymptom)}
                           <span className="text-xs text-slate-400">
                             {formatStudyName(patient.recommendedStudy)}
                           </span>
@@ -520,6 +573,96 @@ export default function ReviewPage() {
                                   <li key={i}>{f}</li>
                                 ))}
                               </ul>
+                            </div>
+                          )}
+
+                          {/* Qualification Suggestion Card for DENIED patients */}
+                          {patient.status === "COMPLETE" &&
+                            (patient.decision === "DENIED" || patient.recommendedStudy === "NONE") &&
+                            !(patient as any).qualifiedViaSymptom &&
+                            (() => {
+                              const suggestions = getSuggestionsForPatient(
+                                patient.extractedDiagnoses || [],
+                                patient.extractedPriorStudies || [],
+                                patient.dateOfService
+                              );
+                              if (suggestions.length === 0) return null;
+                              const activeSuggestion = suggestions[0];
+                              const patientSelectedSymptom = selectedSymptom[patient._id];
+                              return (
+                                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                  <div className="flex items-start gap-3">
+                                    <Lightbulb className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                      <h4 className="text-sm font-semibold text-amber-800">
+                                        Study May Be Warranted
+                                      </h4>
+                                      <p className="text-sm text-amber-700 mt-1">
+                                        Based on patient&apos;s history of <span className="font-medium">{activeSuggestion.matchingDiagnosis}</span>,
+                                        a <span className="font-medium">{activeSuggestion.suggestion.studyName}</span> may
+                                        be appropriate if patient has qualifying symptoms.
+                                      </p>
+                                      <div className="mt-3">
+                                        <p className="text-xs font-medium text-amber-800 mb-2">
+                                          Select the symptom the patient is experiencing:
+                                        </p>
+                                        <div className="space-y-1.5">
+                                          {activeSuggestion.suggestion.symptoms.map((symptom) => (
+                                            <label key={symptom} className="flex items-center gap-2 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name={`symptom-${patient._id}`}
+                                                value={symptom}
+                                                checked={patientSelectedSymptom === symptom}
+                                                onChange={(e) => setSelectedSymptom((prev) => ({
+                                                  ...prev,
+                                                  [patient._id]: e.target.value,
+                                                }))}
+                                                className="w-4 h-4 text-amber-600 border-amber-300 focus:ring-amber-500"
+                                              />
+                                              <span className="text-sm text-amber-900 capitalize">{symptom}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (patientSelectedSymptom) {
+                                            handleApplyQualification(patient._id, activeSuggestion, patientSelectedSymptom);
+                                          }
+                                        }}
+                                        disabled={!patientSelectedSymptom || applyingQualificationId === patient._id}
+                                        className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {applyingQualificationId === patient._id ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Applying...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Apply &amp; Update Status
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                          {/* Show qualifying rationale if patient was qualified via symptom */}
+                          {(patient as any).qualifiedViaSymptom && (patient as any).qualifyingRationale && (
+                            <div className="mt-4">
+                              <span className="text-xs font-medium text-green-600">Physician Qualification</span>
+                              <p className="text-sm text-green-800 mt-1 bg-green-50 p-3 rounded-lg border border-green-200">
+                                {(patient as any).qualifyingRationale}
+                              </p>
+                              <p className="text-xs text-green-600 mt-1 italic">
+                                * Study qualified based on physician-confirmed symptom: {(patient as any).qualifyingSymptom}
+                              </p>
                             </div>
                           )}
 
