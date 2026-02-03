@@ -206,7 +206,7 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
-  doc.text("CardioAuth - AI-Assisted Authorization System", 20, y + 4);
+  doc.text("CardioAuth", 20, y + 4);
 
   return doc;
 }
@@ -363,7 +363,7 @@ export function generateReviewSummaryPdf(data: ReviewSummaryData): jsPDF {
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
-  doc.text("CardioAuth - AI-Assisted Authorization System", 20, y + 4);
+  doc.text("CardioAuth", 20, y + 4);
 
   return doc;
 }
