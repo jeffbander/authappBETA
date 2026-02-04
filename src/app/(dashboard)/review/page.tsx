@@ -58,8 +58,8 @@ export default function ReviewPage() {
   const [feedbackOnlyMode, setFeedbackOnlyMode] = useState(false);
   const [reprocessingPatientId, setReprocessingPatientId] = useState<string | null>(null);
 
-  // Qualification suggestion state
-  const [selectedSymptom, setSelectedSymptom] = useState<Record<string, string>>({});
+  // Qualification suggestion state — maps patientId → studyType → symptom
+  const [selectedSymptom, setSelectedSymptom] = useState<Record<string, Record<string, string>>>({});
   const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
 
   const providers = useQuery(api.providers.list);
@@ -190,23 +190,38 @@ export default function ReviewPage() {
 
   const handleApplyQualification = async (
     patientId: Id<"patients">,
-    suggestion: EligibleSuggestion,
-    symptom: string
+    suggestions: EligibleSuggestion[],
+    symptoms: Record<string, string>
   ) => {
+    const selectedStudies = suggestions.filter(s => symptoms[s.suggestion.studyType]);
+    if (selectedStudies.length === 0) return;
+
     setApplyingQualificationId(patientId);
     try {
-      const rationale = generateQualifyingRationale(
-        symptom,
-        suggestion.matchingDiagnosis,
-        suggestion.suggestion.studyName
-      );
+      const primary = selectedStudies[0];
+      const primarySymptom = symptoms[primary.suggestion.studyType];
+      const second = selectedStudies.length > 1 ? selectedStudies[1] : null;
+      const secondSymptom = second ? symptoms[second.suggestion.studyType] : undefined;
+
       await applyQualifyingSuggestionMutation({
         patientId,
-        symptom,
-        studyType: suggestion.suggestion.studyType,
-        qualifyingRationale: rationale,
+        symptom: primarySymptom,
+        studyType: primary.suggestion.studyType,
+        qualifyingRationale: generateQualifyingRationale(
+          primarySymptom,
+          primary.matchingDiagnosis,
+          primary.suggestion.studyName
+        ),
+        ...(second && secondSymptom ? {
+          secondStudyType: second.suggestion.studyType,
+          secondSymptom,
+          secondQualifyingRationale: generateQualifyingRationale(
+            secondSymptom,
+            second.matchingDiagnosis,
+            second.suggestion.studyName
+          ),
+        } : {}),
       });
-      // Clear selection after success
       setSelectedSymptom((prev) => {
         const updated = { ...prev };
         delete updated[patientId];
@@ -236,7 +251,7 @@ export default function ReviewPage() {
         mrn: p.mrn,
         patientName: p.extractedPatientName || "—",
         dateOfService: p.dateOfService,
-        recommendedStudy: formatStudyName(p.recommendedStudy),
+        recommendedStudy: formatStudyName(p.recommendedStudy) + ((p as any).secondRecommendedStudy ? ` + ${formatStudyName((p as any).secondRecommendedStudy)}` : ""),
         decision: p.decision || "—",
         reviewStatus: p.review?.reviewStatus || "PENDING",
         rationale: p.rationale || "",
@@ -480,6 +495,7 @@ export default function ReviewPage() {
                           {getDecisionBadge(patient.status, patient.decision, patient.recommendedStudy, (patient as any).qualifiedViaSymptom)}
                           <span className="text-xs text-slate-400">
                             {formatStudyName(patient.recommendedStudy)}
+                            {(patient as any).secondRecommendedStudy && ` + ${formatStudyName((patient as any).secondRecommendedStudy)}`}
                           </span>
                           {getReviewBadge(patient.review)}
                         </div>
@@ -588,52 +604,59 @@ export default function ReviewPage() {
                                 [...(patient.extractedSymptoms || []), patient.clinicalNotes || ""]
                               );
                               if (suggestions.length === 0) return null;
-                              const activeSuggestion = suggestions[0];
-                              const patientSelectedSymptom = selectedSymptom[patient._id];
+                              const patientSymptoms = selectedSymptom[patient._id] || {};
+                              const hasAnySymptom = Object.values(patientSymptoms).some(Boolean);
                               return (
                                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                                   <div className="flex items-start gap-3">
                                     <Lightbulb className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                     <div className="flex-1">
                                       <h4 className="text-sm font-semibold text-amber-800">
-                                        Study May Be Warranted
+                                        {suggestions.length > 1 ? "Studies May Be Warranted" : "Study May Be Warranted"}
                                       </h4>
-                                      <p className="text-sm text-amber-700 mt-1">
-                                        Based on patient&apos;s history of <span className="font-medium">{activeSuggestion.matchingDiagnosis}</span>,
-                                        a <span className="font-medium">{activeSuggestion.suggestion.studyName}</span> may
-                                        be appropriate if patient has qualifying symptoms.
-                                      </p>
-                                      <div className="mt-3">
-                                        <p className="text-xs font-medium text-amber-800 mb-2">
-                                          Select the symptom the patient is experiencing:
-                                        </p>
-                                        <div className="space-y-1.5">
-                                          {activeSuggestion.suggestion.symptoms.map((symptom) => (
-                                            <label key={symptom} className="flex items-center gap-2 cursor-pointer">
-                                              <input
-                                                type="radio"
-                                                name={`symptom-${patient._id}`}
-                                                value={symptom}
-                                                checked={patientSelectedSymptom === symptom}
-                                                onChange={(e) => setSelectedSymptom((prev) => ({
-                                                  ...prev,
-                                                  [patient._id]: e.target.value,
-                                                }))}
-                                                className="w-4 h-4 text-amber-600 border-amber-300 focus:ring-amber-500"
-                                              />
-                                              <span className="text-sm text-amber-900 capitalize">{symptom}</span>
-                                            </label>
-                                          ))}
+                                      {suggestions.map((suggestion, idx) => (
+                                        <div key={suggestion.suggestion.studyType} className={idx > 0 ? "mt-4 pt-4 border-t border-amber-200" : "mt-1"}>
+                                          <p className="text-sm text-amber-700">
+                                            Based on patient&apos;s history of <span className="font-medium">{suggestion.matchingDiagnosis}</span>,
+                                            a <span className="font-medium">{suggestion.suggestion.studyName}</span> may
+                                            be appropriate if patient has qualifying symptoms.
+                                          </p>
+                                          <div className="mt-2">
+                                            <p className="text-xs font-medium text-amber-800 mb-1.5">
+                                              Select symptom for {suggestion.suggestion.studyName}:
+                                            </p>
+                                            <div className="space-y-1.5">
+                                              {suggestion.suggestion.symptoms.map((symptom) => (
+                                                <label key={symptom} className="flex items-center gap-2 cursor-pointer">
+                                                  <input
+                                                    type="radio"
+                                                    name={`symptom-${patient._id}-${suggestion.suggestion.studyType}`}
+                                                    value={symptom}
+                                                    checked={patientSymptoms[suggestion.suggestion.studyType] === symptom}
+                                                    onChange={(e) => setSelectedSymptom((prev) => ({
+                                                      ...prev,
+                                                      [patient._id]: {
+                                                        ...(prev[patient._id] || {}),
+                                                        [suggestion.suggestion.studyType]: e.target.value,
+                                                      },
+                                                    }))}
+                                                    className="w-4 h-4 text-amber-600 border-amber-300 focus:ring-amber-500"
+                                                  />
+                                                  <span className="text-sm text-amber-900 capitalize">{symptom}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          </div>
                                         </div>
-                                      </div>
+                                      ))}
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (patientSelectedSymptom) {
-                                            handleApplyQualification(patient._id, activeSuggestion, patientSelectedSymptom);
+                                          if (hasAnySymptom) {
+                                            handleApplyQualification(patient._id, suggestions, patientSymptoms);
                                           }
                                         }}
-                                        disabled={!patientSelectedSymptom || applyingQualificationId === patient._id}
+                                        disabled={!hasAnySymptom || applyingQualificationId === patient._id}
                                         className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
                                         {applyingQualificationId === patient._id ? (
@@ -664,6 +687,16 @@ export default function ReviewPage() {
                               <p className="text-xs text-green-600 mt-1 italic">
                                 * Study qualified based on physician-confirmed symptom: {(patient as any).qualifyingSymptom}
                               </p>
+                              {(patient as any).secondRecommendedStudy && (patient as any).secondQualifyingRationale && (
+                                <>
+                                  <p className="text-sm text-green-800 mt-2 bg-green-50 p-3 rounded-lg border border-green-200">
+                                    {(patient as any).secondQualifyingRationale}
+                                  </p>
+                                  <p className="text-xs text-green-600 mt-1 italic">
+                                    * Study qualified based on physician-confirmed symptom: {(patient as any).secondQualifyingSymptom}
+                                  </p>
+                                </>
+                              )}
                             </div>
                           )}
 

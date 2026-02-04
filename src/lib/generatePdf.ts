@@ -22,6 +22,9 @@ interface PdfData {
   // Qualification flow fields
   qualifiedViaSymptom?: boolean;
   qualifyingRationale?: string;
+  // Second qualified study
+  secondRecommendedStudy?: string;
+  secondQualifyingRationale?: string;
 }
 
 export function generateAttestationPdf(data: PdfData): jsPDF {
@@ -79,7 +82,8 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
   y += 5;
 
   // Recommended Procedure
-  const studyLabel = formatStudy(data.recommendedStudy);
+  const studyLabel = formatStudy(data.recommendedStudy) +
+    (data.secondRecommendedStudy ? ` + ${formatStudy(data.secondRecommendedStudy)}` : "");
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 51, 102);
@@ -146,6 +150,19 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
     const qualifyingLines = doc.splitTextToSize(data.qualifyingRationale, pageWidth - 40);
     doc.text(qualifyingLines, 20, y);
     y += qualifyingLines.length * 5 + 4;
+
+    // Second study qualification if present
+    if (data.secondRecommendedStudy && data.secondQualifyingRationale) {
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const secondLines = doc.splitTextToSize(data.secondQualifyingRationale, pageWidth - 40);
+      doc.text(secondLines, 20, y);
+      y += secondLines.length * 5 + 4;
+    }
 
     // Add note about qualification
     doc.setFontSize(8);

@@ -147,6 +147,14 @@ export const resetForReprocessing = mutation({
       denialReason: undefined,
       supportingCriteria: undefined,
       missingFields: undefined,
+      // Clear qualification fields
+      qualifiedViaSymptom: undefined,
+      qualifyingSymptom: undefined,
+      qualifyingRationale: undefined,
+      originalDecision: undefined,
+      secondRecommendedStudy: undefined,
+      secondQualifyingSymptom: undefined,
+      secondQualifyingRationale: undefined,
     });
   },
 });
@@ -174,6 +182,15 @@ export const applyQualifyingSuggestion = mutation({
       v.literal("VASCULAR")
     ),
     qualifyingRationale: v.string(),
+    // Optional second study
+    secondStudyType: v.optional(v.union(
+      v.literal("NUCLEAR"),
+      v.literal("STRESS_ECHO"),
+      v.literal("ECHO"),
+      v.literal("VASCULAR")
+    )),
+    secondSymptom: v.optional(v.string()),
+    secondQualifyingRationale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const patient = await ctx.db.get(args.patientId);
@@ -186,6 +203,11 @@ export const applyQualifyingSuggestion = mutation({
       qualifiedViaSymptom: true,
       qualifyingSymptom: args.symptom,
       qualifyingRationale: args.qualifyingRationale,
+      ...(args.secondStudyType ? {
+        secondRecommendedStudy: args.secondStudyType,
+        secondQualifyingSymptom: args.secondSymptom,
+        secondQualifyingRationale: args.secondQualifyingRationale,
+      } : {}),
     });
   },
 });

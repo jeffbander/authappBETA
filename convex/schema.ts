@@ -51,6 +51,17 @@ export default defineSchema({
     qualifyingSymptom: v.optional(v.string()),
     qualifyingRationale: v.optional(v.string()),
     originalDecision: v.optional(v.string()),
+    // Second qualified study (when 2 studies are warranted)
+    secondRecommendedStudy: v.optional(
+      v.union(
+        v.literal("NUCLEAR"),
+        v.literal("STRESS_ECHO"),
+        v.literal("ECHO"),
+        v.literal("VASCULAR")
+      )
+    ),
+    secondQualifyingSymptom: v.optional(v.string()),
+    secondQualifyingRationale: v.optional(v.string()),
     // PDF referral upload fields
     referralPdfStorageId: v.optional(v.id("_storage")),  // Convex storage ID for uploaded PDF
     createdAt: v.number(),

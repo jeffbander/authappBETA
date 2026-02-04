@@ -273,7 +273,14 @@ export function getSuggestionsForPatient(
     }
   }
 
-  return eligibleSuggestions;
+  // Remove STRESS_ECHO if NUCLEAR is also present (can't combine same-tier studies)
+  const hasNuclear = eligibleSuggestions.some(s => s.suggestion.studyType === "NUCLEAR");
+  const filtered = hasNuclear
+    ? eligibleSuggestions.filter(s => s.suggestion.studyType !== "STRESS_ECHO")
+    : eligibleSuggestions;
+
+  // Return max 2 suggestions (already in priority order: NUCLEAR > STRESS_ECHO > ECHO > VASCULAR)
+  return filtered.slice(0, 2);
 }
 
 /**
