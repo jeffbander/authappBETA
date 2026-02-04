@@ -11,6 +11,7 @@ export const create = mutation({
     previousStudies: v.string(),
     createdBy: v.string(),
     selectedProvider: v.optional(v.string()),
+    referralPdfStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const patientId = await ctx.db.insert("patients", {
@@ -20,6 +21,21 @@ export const create = mutation({
       archived: false,
     });
     return patientId;
+  },
+});
+
+// Generate upload URL for PDF referral documents
+export const generatePdfUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Get URL for a stored PDF
+export const getPdfUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });
 

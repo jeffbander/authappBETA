@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useAction, useQuery } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../../../convex/_generated/api";
-import { ClipboardList, Send, RotateCcw } from "lucide-react";
+import { ClipboardList, Send, RotateCcw, Upload, X, FileText } from "lucide-react";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function InputPage() {
   const { user } = useUser();
@@ -12,8 +13,10 @@ export default function InputPage() {
   const processPatient = useAction(api.processing.processPatient);
   const seedRules = useMutation(api.rules.seed);
   const providers = useQuery(api.providers.list);
+  const generatePdfUploadUrl = useMutation(api.patients.generatePdfUploadUrl);
 
   const mrnRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mrn, setMrn] = useState("");
   const [dateOfService, setDateOfService] = useState(
     new Date().toISOString().split("T")[0]
@@ -26,6 +29,11 @@ export default function InputPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSubmitted, setLastSubmitted] = useState<string | null>(null);
 
+  // PDF upload state
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfStorageId, setPdfStorageId] = useState<Id<"_storage"> | null>(null);
+  const [pdfUploading, setPdfUploading] = useState(false);
+
   useEffect(() => {
     seedRules();
   }, [seedRules]);
@@ -33,6 +41,51 @@ export default function InputPage() {
   useEffect(() => {
     mrnRef.current?.focus();
   }, []);
+
+  const handlePdfUpload = async (file: File) => {
+    setPdfUploading(true);
+    try {
+      // Get upload URL from Convex
+      const uploadUrl = await generatePdfUploadUrl();
+
+      // Upload file to Convex storage
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload PDF");
+      }
+
+      const { storageId } = await response.json();
+      setPdfStorageId(storageId);
+      setPdfFile(file);
+    } catch (error) {
+      console.error("PDF upload failed:", error);
+      alert("Failed to upload PDF. Please try again.");
+    } finally {
+      setPdfUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      handlePdfUpload(file);
+    } else if (file) {
+      alert("Please select a PDF file");
+    }
+  };
+
+  const removePdf = () => {
+    setPdfFile(null);
+    setPdfStorageId(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +104,7 @@ export default function InputPage() {
         ...(selectedProvider && selectedProvider !== "Other"
           ? { selectedProvider }
           : {}),
+        ...(pdfStorageId ? { referralPdfStorageId: pdfStorageId } : {}),
       });
 
       processPatient({ patientId });
@@ -70,6 +124,11 @@ export default function InputPage() {
     setInsuranceInfo("");
     setPreviousStudies("");
     setPatientType("NEW");
+    setPdfFile(null);
+    setPdfStorageId(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     mrnRef.current?.focus();
   };
 
@@ -222,6 +281,70 @@ export default function InputPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* PDF Referral Upload Section */}
+        <div className="bg-amber-50 rounded-xl shadow-sm border border-amber-200 p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">
+            Referral Document (Optional)
+          </h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Upload a PDF referral document. The AI will extract diagnoses, insurance info, and other details automatically.
+          </p>
+
+          {!pdfFile ? (
+            <div className="border-2 border-dashed border-amber-300 rounded-lg p-6 text-center">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleFileChange}
+                className="hidden"
+                id="pdf-upload"
+              />
+              <label
+                htmlFor="pdf-upload"
+                className="cursor-pointer flex flex-col items-center gap-2"
+              >
+                {pdfUploading ? (
+                  <>
+                    <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-amber-700">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">
+                      Click to upload PDF referral
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      Supports scanned documents
+                    </span>
+                  </>
+                )}
+              </label>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-white border border-amber-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <FileText className="w-8 h-8 text-amber-600" />
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{pdfFile.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={removePdf}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Remove PDF"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">

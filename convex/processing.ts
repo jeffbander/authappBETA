@@ -5,6 +5,45 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Helper function to build the authorization prompt
+function buildAuthorizationPrompt(
+  patient: {
+    mrn: string;
+    dateOfService: string;
+    patientType: string;
+    clinicalNotes: string;
+    insuranceInfo: string;
+    previousStudies: string;
+  },
+  rulesText: string,
+  referenceCasesSection: string,
+  hasPdf: boolean
+): string {
+  const pdfInstructions = hasPdf
+    ? `\n\nNOTE: A referral PDF document has been provided. Extract all relevant clinical information from the PDF including:
+- Patient name, DOB
+- Insurance information (carrier, plan type - determine if Medicare/Medicare Advantage/Commercial)
+- Referring physician
+- All diagnoses listed
+- Any symptoms or clinical findings mentioned
+- Any prior cardiac studies mentioned
+Use this extracted information in combination with any additional notes provided below.\n`
+    : "";
+
+  return `You are a cardiology study authorization AI assistant for MSW Heart Cardiology. Analyze the following patient information and determine authorization status based on the rules provided.${pdfInstructions}
+
+## Authorization Rules
+${rulesText}${referenceCasesSection}
+
+## Patient Information
+- MRN: ${patient.mrn}
+- Date of Service: ${patient.dateOfService}
+- Patient Type: ${patient.patientType}
+- Clinical Notes: ${patient.clinicalNotes || "(See attached referral PDF)"}
+- Insurance Information: ${patient.insuranceInfo || "(Extract from referral PDF if available)"}
+- Previous Studies: ${patient.previousStudies || "(Extract from referral PDF if available)"}`;
+}
+
 export const processPatient = action({
   args: {
     patientId: v.id("patients"),
@@ -39,7 +78,36 @@ export const processPatient = action({
       referenceCasesSection = `\n\n## Reference Cases\nThe following are examples of correct authorization decisions based on MD review feedback. Use these as guidance for similar cases:\n\n${casesText}\n`;
     }
 
-    const prompt = `You are a cardiology study authorization AI assistant for MSW Heart Cardiology. Analyze the following patient information and determine authorization status based on the rules provided.
+    // Check if patient has a PDF referral
+    const hasPdf = !!patient.referralPdfStorageId;
+    let pdfBase64: string | null = null;
+
+    if (hasPdf && patient.referralPdfStorageId) {
+      try {
+        // Get PDF URL from storage
+        const pdfUrl = await ctx.storage.getUrl(patient.referralPdfStorageId);
+        if (pdfUrl) {
+          // Fetch PDF bytes
+          const pdfResponse = await fetch(pdfUrl);
+          const pdfBuffer = await pdfResponse.arrayBuffer();
+          // Convert to base64
+          pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
+        }
+      } catch (error) {
+        console.error("Failed to fetch PDF:", error);
+        // Continue without PDF if fetch fails
+      }
+    }
+
+    const prompt = buildAuthorizationPrompt(
+      patient,
+      rulesText,
+      referenceCasesSection,
+      hasPdf && !!pdfBase64
+    ) + `
+
+## Instructions
+Analyze the clinical information and return a JSON response with the following structure:
 
 ## Authorization Rules
 ${rulesText}${referenceCasesSection}
@@ -249,6 +317,30 @@ Important rules:
     });
 
     try {
+      // Build message content - include PDF if available
+      let messageContent: Anthropic.MessageParam["content"];
+
+      if (pdfBase64) {
+        // Include PDF document with the prompt
+        messageContent = [
+          {
+            type: "document" as const,
+            source: {
+              type: "base64" as const,
+              media_type: "application/pdf" as const,
+              data: pdfBase64,
+            },
+          },
+          {
+            type: "text" as const,
+            text: prompt,
+          },
+        ];
+      } else {
+        // Text-only prompt
+        messageContent = prompt;
+      }
+
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 16000,
@@ -256,7 +348,7 @@ Important rules:
           type: "enabled",
           budget_tokens: 10000,
         },
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: messageContent }],
       });
 
       const textBlock = response.content.find((block: any) => block.type === "text");
