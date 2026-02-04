@@ -584,7 +584,8 @@ export default function ReviewPage() {
                               const suggestions = getSuggestionsForPatient(
                                 patient.extractedDiagnoses || [],
                                 patient.extractedPriorStudies || [],
-                                patient.dateOfService
+                                patient.dateOfService,
+                                [...(patient.extractedSymptoms || []), patient.clinicalNotes || ""]
                               );
                               if (suggestions.length === 0) return null;
                               const activeSuggestion = suggestions[0];

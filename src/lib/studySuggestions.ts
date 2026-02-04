@@ -19,16 +19,36 @@ const SUGGESTIONS: StudySuggestion[] = [
       "new fatigue with activity",
     ],
     diagnosisPatterns: [
-      /coronary/i,
-      /\bcad\b/i,
-      /\bmi\b/i,
-      /myocardial infarction/i,
-      /stent/i,
       /cabg/i,
       /bypass/i,
       /diabetes.*cardiac/i,
       /\bdm\b.*risk/i,
       /diabetic.*heart/i,
+    ],
+  },
+  {
+    studyType: "STRESS_ECHO",
+    studyName: "Stress Echocardiogram",
+    symptoms: [
+      "exertional chest pain",
+      "exertional dyspnea",
+      "syncope or pre-syncope with exertion",
+      "worsening exercise tolerance",
+      "new palpitations with activity",
+    ],
+    diagnosisPatterns: [
+      /coronary/i,
+      /\bcad\b/i,
+      /\bmi\b/i,
+      /myocardial infarction/i,
+      /stent/i,
+      /hypertrophic cardiomyopathy/i,
+      /\bhcm\b/i,
+      /\bhocm\b/i,
+      /mitral regurgitation/i,
+      /pulmonary hypertension/i,
+      /lvot/i,
+      /left ventricular outflow/i,
     ],
   },
   {
@@ -82,6 +102,23 @@ const SUGGESTIONS: StudySuggestion[] = [
       /pvd/i,
     ],
   },
+];
+
+// Patterns indicating patient needs NUCLEAR instead of STRESS_ECHO
+// (LBBB makes exercise stress unreliable, mobility issues prevent treadmill)
+const NUCLEAR_UPGRADE_PATTERNS: RegExp[] = [
+  /\blbbb\b/i,
+  /left bundle branch block/i,
+  /difficulty walking/i,
+  /unable to walk/i,
+  /cannot walk/i,
+  /wheelchair/i,
+  /\bcane\b/i,
+  /\bwalker\b/i,
+  /non-ambulatory/i,
+  /limited mobility/i,
+  /unable to exercise/i,
+  /cannot exercise/i,
 ];
 
 /**
@@ -186,7 +223,8 @@ export interface EligibleSuggestion {
 export function getSuggestionsForPatient(
   diagnoses: string[],
   priorStudies: string[],
-  dateOfService: string
+  dateOfService: string,
+  additionalContext?: string[]
 ): EligibleSuggestion[] {
   if (!diagnoses || diagnoses.length === 0) {
     return [];
@@ -216,6 +254,22 @@ export function getSuggestionsForPatient(
         suggestion,
         matchingDiagnosis,
       });
+    }
+  }
+
+  // Upgrade STRESS_ECHO to NUCLEAR if patient has LBBB or mobility issues
+  const allClinicalData = [...diagnoses, ...(additionalContext || [])];
+  if (matchesDiagnoses(allClinicalData, NUCLEAR_UPGRADE_PATTERNS)) {
+    const nuclearTemplate = SUGGESTIONS.find(s => s.studyType === "NUCLEAR");
+    if (nuclearTemplate) {
+      for (let i = 0; i < eligibleSuggestions.length; i++) {
+        if (eligibleSuggestions[i].suggestion.studyType === "STRESS_ECHO") {
+          eligibleSuggestions[i] = {
+            suggestion: nuclearTemplate,
+            matchingDiagnosis: eligibleSuggestions[i].matchingDiagnosis,
+          };
+        }
+      }
     }
   }
 
