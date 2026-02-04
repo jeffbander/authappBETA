@@ -137,6 +137,23 @@ Important rules:
    - Explain in the rationale why this patient may benefit from the study, citing their clinical findings.
    - If the documentation is insufficient to fully authorize the study but the patient likely qualifies, still recommend the study in the recommendedStudy field, set needsReview to true, and explain what additional documentation the provider should add to get the study authorized. Frame it as: "Based on the patient's [clinical findings], a [study type] may be clinically appropriate. To authorize this study, the provider should document: [specific missing elements]."
    - The goal is to help the provider identify studies their patients qualify for, not just rubber-stamp what was requested.
+16a. PRIOR STUDY INVENTORY: Before determining the recommended study, you MUST explicitly inventory what cardiac studies the patient HAS and HAS NOT had based on the Previous Studies field and clinical notes:
+   - List any prior nuclear/MPI studies with dates (or state "No prior nuclear stress test documented")
+   - List any prior stress echos with dates (or state "No prior stress echo documented")
+   - List any prior resting echos with dates (or state "No prior resting echo documented")
+   - List any prior cardiac catheterizations with dates (or state "No prior cardiac catheterization documented")
+   For patients who have NEVER had a particular study type that is now clinically indicated, this absence is significant and should factor into the recommendation. A patient with CAD or diabetes who has never had nuclear testing is a strong candidate for first-time ischemia evaluation.
+16b. FIRST-TIME ISCHEMIA EVALUATION: For patients with known CAD, diabetes with cardiac risk factors, or other conditions indicating possible ischemic heart disease, you MUST explicitly assess whether they have ever had a prior nuclear stress test or equivalent ischemia evaluation:
+   - If the patient has NEVER had a nuclear stress test (or myocardial perfusion imaging) and has indications for ischemia evaluation (CAD, diabetes with cardiac symptoms, multiple cardiac risk factors, etc.), this is a STRONG indication for nuclear testing — not just the absence of a contraindication.
+   - The absence of prior nuclear testing in a patient with ischemic risk factors should be explicitly noted in the rationale as a positive indicator for nuclear study.
+   - Do NOT default to echo for these patients simply because they also have heart failure or other echo indications — the study hierarchy (Nuclear > Echo) applies, and evaluating for ischemia takes diagnostic priority when both indications are present.
+   - State explicitly in the rationale: "Patient has [never had / last had on DATE] a nuclear stress test. Given [CAD/diabetes/risk factors], ischemia evaluation with nuclear testing is indicated."
+16c. STUDY HIERARCHY ENFORCEMENT: When a patient qualifies for multiple study types, you MUST:
+   1. List ALL study types the patient qualifies for (e.g., "Patient qualifies for: Nuclear (CAD with diabetes), Echo (heart failure symptoms)")
+   2. Apply the hierarchy strictly: Nuclear > Stress Echo > Echo > Vascular
+   3. Recommend the HIGHEST-LEVEL study the patient qualifies for
+   4. Explain why the higher-level study takes priority (e.g., "Nuclear is recommended over echo because evaluating ischemia in a patient with CAD and diabetes takes diagnostic priority. Ischemia evaluation has not been performed.")
+   5. Note that lower-level studies may still be clinically appropriate and can be addressed separately, but the primary authorization recommendation should be the highest-level indicated study.
 17. STRICT CRITERIA MATCHING — NO ROUNDING OR APPROXIMATION: When authorization rules specify numeric thresholds (e.g., ">50% stenosis", "within 2 years", "annual"), apply them EXACTLY as written. Do NOT round, approximate, or rationalize near-misses:
    - If a rule says ">50% stenosis" and the patient has 40-59% stenosis, the patient does NOT meet the >50% threshold. "Approaching 50%" or "moderate stenosis" is NOT equivalent to >50%. Do not approve under this criterion.
    - If a rule says "annual" surveillance, calculate the exact time since the last study. If it has been less than 12 months, the study is premature regardless of clinical rationale.

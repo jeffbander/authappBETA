@@ -15,6 +15,13 @@ APPROVED if ANY of the following:
 - Diabetes with symptoms suggestive of CAD
 - Peripheral arterial disease with cardiac symptoms
 - Post-revascularization (PCI >2 years, CABG >5 years) with symptoms
+- Known CAD or diabetes with cardiac risk factors AND no prior nuclear/ischemia evaluation (first-time ischemia assessment)
+
+TIMING CONSIDERATIONS:
+- No prior nuclear study + CAD/diabetes/ischemic risk factors = Nuclear STRONGLY indicated for baseline ischemia evaluation
+- Prior nuclear >2 years ago + new/worsening symptoms = Repeat nuclear appropriate
+- Prior nuclear <2 years ago + stable symptoms = Requires letter or may be premature
+- When patient qualifies for both nuclear (ischemia evaluation) and echo (e.g., HF assessment), nuclear takes priority per study hierarchy
 
 REQUIRES LETTER if:
 - Asymptomatic screening in high-risk population (diabetes, strong family history)
