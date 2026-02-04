@@ -31,7 +31,15 @@ REQUIRES LETTER if:
 DENIED if:
 - Routine screening in asymptomatic low-risk patients
 - Study performed within 90 days without clinical change
-- Patient unable to achieve adequate heart rate and pharmacologic stress contraindicated`,
+- Patient unable to achieve adequate heart rate and pharmacologic stress contraindicated
+
+CONTRAINDICATIONS (flag for provider discretion, do not auto-deny):
+- Severe valvular disease (severe AS, MS, AR, MR — may affect hemodynamic response to stress)
+- Uncontrolled asthma or active bronchospasm (regadenoson/adenosine contraindicated)
+- Known intracardiac thrombus (LV or LA thrombus — risk of embolization with stress)
+- Significant pericardial effusion
+- Pregnancy or suspected pregnancy
+- HFrEF/reduced LVEF (EF <40% — may affect interpretation and safety)`,
   },
   {
     ruleName: "Stress Echocardiogram",
@@ -53,7 +61,16 @@ REQUIRES LETTER if:
 DENIED if:
 - Routine follow-up without symptoms or clinical change
 - Study within 6 months without new findings
-- Can be adequately assessed with standard echocardiogram`,
+- Can be adequately assessed with standard echocardiogram
+
+CONTRAINDICATIONS (flag for provider discretion, do not auto-deny):
+- Severe valvular disease
+- HFrEF/reduced LVEF (EF <40%)
+- LBBB (causes baseline septal wall motion abnormality, affects interpretation)
+- Pacemaker or paced rhythm (affects wall motion interpretation)
+- Mobility limitations requiring cane/walker (unable to achieve target heart rate on treadmill)
+- Known intracardiac thrombus
+- Pregnancy or suspected pregnancy`,
   },
   {
     ruleName: "Echocardiogram",

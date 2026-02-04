@@ -217,7 +217,32 @@ Important rules:
    - Repeating the study will show the same nonobstructive disease — no new diagnostic information
    - Appropriate management is medical therapy (statins, aspirin, lifestyle modification), NOT further cardiac imaging
    If "nonobstructive CAD" is cited as justification for a repeat study, DENY unless there is a new acute event (MI, acute coronary syndrome, new arrhythmia). State: "Nonobstructive CAD is a stable finding managed with medical therapy. It does not indicate ischemia and does not justify repeat stress testing. A repeat study will not provide new diagnostic information."
-30. Return ONLY the JSON, no other text.`;
+30. MEDICAL CONTRAINDICATION SCREENING: Before finalizing the study recommendation, you MUST screen for medical contraindications that require provider discretion. These are NOT automatic denials — they flag the case for provider review.
+
+   NUCLEAR STRESS TEST CONTRAINDICATIONS (flag for review if detected):
+   - Severe valvular disease (severe AS, severe MS, severe AR, severe MR)
+   - Uncontrolled asthma or active bronchospasm (regadenoson/adenosine contraindicated)
+   - Known intracardiac thrombus (LV thrombus, LA thrombus — risk of embolization with stress)
+   - Significant pericardial effusion
+   - Pregnancy or suspected pregnancy
+   - Heart failure with reduced ejection fraction (HFrEF, EF <40%, reduced LVEF — may affect interpretation and safety)
+
+   STRESS ECHO CONTRAINDICATIONS (flag for review if detected):
+   - Severe valvular disease
+   - Heart failure with reduced ejection fraction (HFrEF, EF <40%, reduced LVEF)
+   - Left bundle branch block (LBBB — causes septal wall motion abnormality, affects interpretation)
+   - Pacemaker or paced rhythm (affects wall motion interpretation)
+   - Mobility limitations requiring cane/walker (unable to achieve adequate exercise capacity for treadmill stress)
+   - Known intracardiac thrombus
+   - Pregnancy or suspected pregnancy
+
+   When a contraindication is detected:
+   1. Still recommend the clinically indicated study in recommendedStudy (do NOT change to NONE)
+   2. Set needsReview to true
+   3. In the rationale, include a clear warning: "Contraindication detected in chart: [condition]. Need review. This is a relative contraindication to [study type]."
+   4. Explain the specific clinical concern (e.g., "LBBB causes baseline septal wall motion abnormality that may be misinterpreted as ischemia on stress echo")
+   5. Do NOT auto-deny — the provider may determine the study is still appropriate given the full clinical context
+31. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
