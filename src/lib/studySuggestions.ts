@@ -212,6 +212,73 @@ function getMatchingDiagnosis(diagnoses: string[], patterns: RegExp[]): string |
 export interface EligibleSuggestion {
   suggestion: StudySuggestion;
   matchingDiagnosis: string;
+  isAlreadyScheduled: boolean;
+  scheduledContext?: string; // The text that indicates it's scheduled
+}
+
+// Patterns that indicate a study is already scheduled/ordered
+const SCHEDULED_PATTERNS: RegExp[] = [
+  /schedul(ed|e)/i,
+  /order(ed|ing)?/i,
+  /plan(ned)?/i,
+  /pending/i,
+  /upcoming/i,
+  /refer(red|ral)?/i,
+  /request(ed|ing)?/i,
+  /arrange(d|ment)?/i,
+  /will (get|have|undergo|perform)/i,
+  /to (get|have|undergo|perform)/i,
+  /needs? (a|an)?/i,
+  /recommend(ed)?/i,
+  /await(ing)?/i,
+];
+
+/**
+ * Check if clinical notes indicate a study is already scheduled
+ */
+function findScheduledStudy(
+  clinicalNotes: string,
+  studyType: StudyType
+): { isScheduled: boolean; context?: string } {
+  if (!clinicalNotes) {
+    return { isScheduled: false };
+  }
+
+  const notesLower = clinicalNotes.toLowerCase();
+
+  // Define study keywords for each type
+  const studyKeywords: Record<StudyType, string[]> = {
+    NUCLEAR: ["nuclear", "myocardial perfusion", "mpi", "nuclear stress"],
+    STRESS_ECHO: ["stress echo", "stress echocardiogram", "dobutamine echo", "exercise echo"],
+    ECHO: ["echo", "echocardiogram", "tte", "tee", "transthoracic"],
+    VASCULAR: ["vascular", "carotid", "abi", "arterial", "duplex"],
+  };
+
+  const keywords = studyKeywords[studyType];
+
+  // Look for patterns like "echo scheduled", "scheduled for echo", "will get echo", etc.
+  for (const keyword of keywords) {
+    // Check if keyword exists in notes
+    if (!notesLower.includes(keyword)) continue;
+
+    // Find sentences/phrases containing the keyword
+    const sentences = clinicalNotes.split(/[.;]\s*/);
+    for (const sentence of sentences) {
+      const sentenceLower = sentence.toLowerCase();
+      if (!sentenceLower.includes(keyword)) continue;
+
+      // Check if any scheduling pattern is in the same sentence
+      for (const pattern of SCHEDULED_PATTERNS) {
+        if (pattern.test(sentenceLower)) {
+          // Return the matching context (truncated if too long)
+          const context = sentence.trim().slice(0, 100) + (sentence.length > 100 ? "..." : "");
+          return { isScheduled: true, context };
+        }
+      }
+    }
+  }
+
+  return { isScheduled: false };
 }
 
 /**
@@ -219,6 +286,7 @@ export interface EligibleSuggestion {
  * Returns suggestions for studies that:
  * 1. Match the patient's diagnoses
  * 2. Haven't been done in the last year (or never done)
+ * 3. Indicates if already scheduled in clinical notes
  */
 export function getSuggestionsForPatient(
   diagnoses: string[],
@@ -235,6 +303,9 @@ export function getSuggestionsForPatient(
     return [];
   }
 
+  // Combine additional context into a single string to check for scheduled studies
+  const clinicalNotes = (additionalContext || []).join(" ");
+
   const eligibleSuggestions: EligibleSuggestion[] = [];
 
   for (const suggestion of SUGGESTIONS) {
@@ -250,9 +321,14 @@ export function getSuggestionsForPatient(
 
     const matchingDiagnosis = getMatchingDiagnosis(diagnoses, suggestion.diagnosisPatterns);
     if (matchingDiagnosis) {
+      // Check if this study is already scheduled in the clinical notes
+      const scheduledInfo = findScheduledStudy(clinicalNotes, suggestion.studyType);
+
       eligibleSuggestions.push({
         suggestion,
         matchingDiagnosis,
+        isAlreadyScheduled: scheduledInfo.isScheduled,
+        scheduledContext: scheduledInfo.context,
       });
     }
   }
@@ -264,9 +340,13 @@ export function getSuggestionsForPatient(
     if (nuclearTemplate) {
       for (let i = 0; i < eligibleSuggestions.length; i++) {
         if (eligibleSuggestions[i].suggestion.studyType === "STRESS_ECHO") {
+          // Check if NUCLEAR is already scheduled (may differ from STRESS_ECHO scheduled status)
+          const nuclearScheduledInfo = findScheduledStudy(clinicalNotes, "NUCLEAR");
           eligibleSuggestions[i] = {
             suggestion: nuclearTemplate,
             matchingDiagnosis: eligibleSuggestions[i].matchingDiagnosis,
+            isAlreadyScheduled: nuclearScheduledInfo.isScheduled,
+            scheduledContext: nuclearScheduledInfo.context,
           };
         }
       }

@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Lightbulb,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 import { generateReviewSummaryPdf } from "@/lib/generatePdf";
 import {
@@ -606,73 +607,161 @@ export default function ReviewPage() {
                               if (suggestions.length === 0) return null;
                               const patientSymptoms = selectedSymptom[patient._id] || {};
                               const hasAnySymptom = Object.values(patientSymptoms).some(Boolean);
+
+                              // Separate suggestions into scheduled vs new
+                              const scheduledSuggestions = suggestions.filter(s => s.isAlreadyScheduled);
+                              const newSuggestions = suggestions.filter(s => !s.isAlreadyScheduled);
+
                               return (
-                                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                                  <div className="flex items-start gap-3">
-                                    <Lightbulb className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                    <div className="flex-1">
-                                      <h4 className="text-sm font-semibold text-amber-800">
-                                        {suggestions.length > 1 ? "Studies May Be Warranted" : "Study May Be Warranted"}
-                                      </h4>
-                                      {suggestions.map((suggestion, idx) => (
-                                        <div key={suggestion.suggestion.studyType} className={idx > 0 ? "mt-4 pt-4 border-t border-amber-200" : "mt-1"}>
-                                          <p className="text-sm text-amber-700">
-                                            Based on patient&apos;s history of <span className="font-medium">{suggestion.matchingDiagnosis}</span>,
-                                            a <span className="font-medium">{suggestion.suggestion.studyName}</span> may
-                                            be appropriate if patient has qualifying symptoms.
-                                          </p>
-                                          <div className="mt-2">
-                                            <p className="text-xs font-medium text-amber-800 mb-1.5">
-                                              Select symptom for {suggestion.suggestion.studyName}:
-                                            </p>
-                                            <div className="space-y-1.5">
-                                              {suggestion.suggestion.symptoms.map((symptom) => (
-                                                <label key={symptom} className="flex items-center gap-2 cursor-pointer">
-                                                  <input
-                                                    type="radio"
-                                                    name={`symptom-${patient._id}-${suggestion.suggestion.studyType}`}
-                                                    value={symptom}
-                                                    checked={patientSymptoms[suggestion.suggestion.studyType] === symptom}
-                                                    onChange={(e) => setSelectedSymptom((prev) => ({
-                                                      ...prev,
-                                                      [patient._id]: {
-                                                        ...(prev[patient._id] || {}),
-                                                        [suggestion.suggestion.studyType]: e.target.value,
-                                                      },
-                                                    }))}
-                                                    className="w-4 h-4 text-amber-600 border-amber-300 focus:ring-amber-500"
-                                                  />
-                                                  <span className="text-sm text-amber-900 capitalize">{symptom}</span>
-                                                </label>
-                                              ))}
+                                <div className="mt-4 space-y-4">
+                                  {/* Scheduled Test Review - Blue styling */}
+                                  {scheduledSuggestions.length > 0 && (
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                      <div className="flex items-start gap-3">
+                                        <Calendar className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                                        <div className="flex-1">
+                                          <h4 className="text-sm font-semibold text-blue-800">
+                                            Scheduled Test Review
+                                          </h4>
+                                          {scheduledSuggestions.map((suggestion, idx) => (
+                                            <div key={suggestion.suggestion.studyType} className={idx > 0 ? "mt-4 pt-4 border-t border-blue-200" : "mt-1"}>
+                                              <p className="text-sm text-blue-700">
+                                                A <span className="font-medium">{suggestion.suggestion.studyName}</span> is already scheduled.
+                                                Based on patient&apos;s history of <span className="font-medium">{suggestion.matchingDiagnosis}</span>,
+                                                confirm qualifying symptoms to proceed.
+                                              </p>
+                                              {suggestion.scheduledContext && (
+                                                <p className="text-xs text-blue-600 mt-1 italic">
+                                                  Found in notes: &quot;{suggestion.scheduledContext}&quot;
+                                                </p>
+                                              )}
+                                              <div className="mt-2">
+                                                <p className="text-xs font-medium text-blue-800 mb-1.5">
+                                                  Select symptom for {suggestion.suggestion.studyName}:
+                                                </p>
+                                                <div className="space-y-1.5">
+                                                  {suggestion.suggestion.symptoms.map((symptom) => (
+                                                    <label key={symptom} className="flex items-center gap-2 cursor-pointer">
+                                                      <input
+                                                        type="radio"
+                                                        name={`symptom-${patient._id}-${suggestion.suggestion.studyType}`}
+                                                        value={symptom}
+                                                        checked={patientSymptoms[suggestion.suggestion.studyType] === symptom}
+                                                        onChange={(e) => setSelectedSymptom((prev) => ({
+                                                          ...prev,
+                                                          [patient._id]: {
+                                                            ...(prev[patient._id] || {}),
+                                                            [suggestion.suggestion.studyType]: e.target.value,
+                                                          },
+                                                        }))}
+                                                        className="w-4 h-4 text-blue-600 border-blue-300 focus:ring-blue-500"
+                                                      />
+                                                      <span className="text-sm text-blue-900 capitalize">{symptom}</span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                              </div>
                                             </div>
-                                          </div>
+                                          ))}
+                                          {newSuggestions.length === 0 && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (hasAnySymptom) {
+                                                  handleApplyQualification(patient._id, suggestions, patientSymptoms);
+                                                }
+                                              }}
+                                              disabled={!hasAnySymptom || applyingQualificationId === patient._id}
+                                              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                              {applyingQualificationId === patient._id ? (
+                                                <>
+                                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                                  Applying...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                                  Confirm &amp; Update Status
+                                                </>
+                                              )}
+                                            </button>
+                                          )}
                                         </div>
-                                      ))}
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (hasAnySymptom) {
-                                            handleApplyQualification(patient._id, suggestions, patientSymptoms);
-                                          }
-                                        }}
-                                        disabled={!hasAnySymptom || applyingQualificationId === patient._id}
-                                        className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {applyingQualificationId === patient._id ? (
-                                          <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Applying...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Apply &amp; Update Status
-                                          </>
-                                        )}
-                                      </button>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+
+                                  {/* Opportunity to Schedule - Purple styling */}
+                                  {newSuggestions.length > 0 && (
+                                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                                      <div className="flex items-start gap-3">
+                                        <Lightbulb className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                                        <div className="flex-1">
+                                          <h4 className="text-sm font-semibold text-purple-800">
+                                            Opportunity to Schedule
+                                          </h4>
+                                          {newSuggestions.map((suggestion, idx) => (
+                                            <div key={suggestion.suggestion.studyType} className={idx > 0 ? "mt-4 pt-4 border-t border-purple-200" : "mt-1"}>
+                                              <p className="text-sm text-purple-700">
+                                                Based on patient&apos;s history of <span className="font-medium">{suggestion.matchingDiagnosis}</span>,
+                                                a <span className="font-medium">{suggestion.suggestion.studyName}</span> may
+                                                be appropriate if patient has qualifying symptoms.
+                                              </p>
+                                              <div className="mt-2">
+                                                <p className="text-xs font-medium text-purple-800 mb-1.5">
+                                                  Select symptom for {suggestion.suggestion.studyName}:
+                                                </p>
+                                                <div className="space-y-1.5">
+                                                  {suggestion.suggestion.symptoms.map((symptom) => (
+                                                    <label key={symptom} className="flex items-center gap-2 cursor-pointer">
+                                                      <input
+                                                        type="radio"
+                                                        name={`symptom-${patient._id}-${suggestion.suggestion.studyType}`}
+                                                        value={symptom}
+                                                        checked={patientSymptoms[suggestion.suggestion.studyType] === symptom}
+                                                        onChange={(e) => setSelectedSymptom((prev) => ({
+                                                          ...prev,
+                                                          [patient._id]: {
+                                                            ...(prev[patient._id] || {}),
+                                                            [suggestion.suggestion.studyType]: e.target.value,
+                                                          },
+                                                        }))}
+                                                        className="w-4 h-4 text-purple-600 border-purple-300 focus:ring-purple-500"
+                                                      />
+                                                      <span className="text-sm text-purple-900 capitalize">{symptom}</span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (hasAnySymptom) {
+                                                handleApplyQualification(patient._id, suggestions, patientSymptoms);
+                                              }
+                                            }}
+                                            disabled={!hasAnySymptom || applyingQualificationId === patient._id}
+                                            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {applyingQualificationId === patient._id ? (
+                                              <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Applying...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                Apply &amp; Update Status
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
