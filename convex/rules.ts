@@ -125,7 +125,7 @@ DENIED if:
     ruleContent: `General Authorization Guidelines:
 
 INSURANCE RULES:
-- Medicare (traditional): Auto-approve all medically indicated studies
+- Medicare (traditional): Medically indicated studies are approved per Medicare coverage guidelines
 - Medicare Advantage: Treat as commercial insurance - apply full authorization rules
 - Commercial insurance: Apply full authorization rules below
 

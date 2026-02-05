@@ -145,7 +145,7 @@ Analyze the clinical information and return a JSON response with the following s
 }
 
 Important rules:
-1. If insurance is Medicare (traditional/original), auto-approve ONLY when the clinical documentation is sufficient to support the study. Medicare auto-approval means insurance won't deny it, but the documentation must still meet clinical standards. If the notes are missing key symptom documentation (see rule 15 - "magic words"), set needsReview to true and recommend the provider strengthen the documentation before proceeding.
+1. If insurance is Medicare (traditional/original), the study is approved per Medicare coverage guidelines when the clinical documentation is sufficient to support the study. Medicare covers medically indicated studies, but the documentation must still meet clinical standards. If the notes are missing key symptom documentation (see rule 15 - "magic words"), set needsReview to true and recommend the provider strengthen the documentation before proceeding.
 2. Medicare Advantage should be treated as commercial insurance.
 3. Follow the study hierarchy: Nuclear > Stress Echo > Echo > Vascular. Use NONE if no cardiac study is clinically appropriate.
 4. If critical clinical information is missing, set needsReview to true and list missing fields. NOTE: "Study type" and "clinical indication" are NOT missing fields — YOU determine those based on the patient's diagnoses, symptoms, and clinical findings. Missing fields should be things like: symptom characterization, temporal status, prior study results, etc.
@@ -310,7 +310,13 @@ Important rules:
    3. In the rationale, include a clear warning: "Contraindication detected in chart: [condition]. Need review. This is a relative contraindication to [study type]."
    4. Explain the specific clinical concern (e.g., "LBBB causes baseline septal wall motion abnormality that may be misinterpreted as ischemia on stress echo")
    5. Do NOT auto-deny — the provider may determine the study is still appropriate given the full clinical context
-31. Return ONLY the JSON, no other text.`;
+31. PROFESSIONAL PAYER-FACING LANGUAGE: The rationale text may appear in documents submitted to insurance companies. NEVER use internal authorization logic language in the rationale. Specifically:
+   - NEVER say "auto-approve", "auto-approval", "per authorization rules", or reference internal rule mechanics.
+   - NEVER say things like "which per authorization rules auto-approves all medically indicated studies" or similar.
+   - For Medicare patients, use language like: "As per Medicare coverage guidelines, this medically indicated study is approved" or "This study meets Medicare coverage criteria" or "Per Medicare guidelines, the requested study is covered when medically indicated."
+   - For all patients, frame the rationale in terms of clinical necessity and established medical guidelines — not in terms of internal authorization rule processing.
+   - The rationale should read as a clinical justification document, not as an explanation of how an authorization system works.
+32. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
