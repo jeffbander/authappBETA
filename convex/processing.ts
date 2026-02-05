@@ -310,12 +310,23 @@ Important rules:
    3. In the rationale, include a clear warning: "Contraindication detected in chart: [condition]. Need review. This is a relative contraindication to [study type]."
    4. Explain the specific clinical concern (e.g., "LBBB causes baseline septal wall motion abnormality that may be misinterpreted as ischemia on stress echo")
    5. Do NOT auto-deny — the provider may determine the study is still appropriate given the full clinical context
-31. PROFESSIONAL PAYER-FACING LANGUAGE: The rationale text may appear in documents submitted to insurance companies. NEVER use internal authorization logic language in the rationale. Specifically:
-   - NEVER say "auto-approve", "auto-approval", "per authorization rules", or reference internal rule mechanics.
-   - NEVER say things like "which per authorization rules auto-approves all medically indicated studies" or similar.
-   - For Medicare patients, use language like: "As per Medicare coverage guidelines, this medically indicated study is approved" or "This study meets Medicare coverage criteria" or "Per Medicare guidelines, the requested study is covered when medically indicated."
-   - For all patients, frame the rationale in terms of clinical necessity and established medical guidelines — not in terms of internal authorization rule processing.
-   - The rationale should read as a clinical justification document, not as an explanation of how an authorization system works.
+31. PROFESSIONAL PAYER-FACING LANGUAGE: The rationale text will appear in documents submitted to insurance companies. It MUST read as a professional clinical justification written by a medical office — never as output from an automated system. Follow ALL of these rules:
+   PROHIBITED LANGUAGE — never use any of the following in the rationale:
+   - "auto-approve", "auto-approval", "auto-deny", or any "auto-" prefix related to decisions
+   - "per authorization rules", "authorization rules state", "per our rules", or any reference to internal rule mechanics
+   - "study hierarchy", "hierarchy enforcement", or references to internal study ranking systems
+   - "needsReview", "NEEDS_REVIEW", "APPROVED_CLEAN", "APPROVED_NEEDS_LETTER", or any internal status codes
+   - "the AI", "AI assessment", "AI analysis", "automated system", or any reference to artificial intelligence or automated processing
+   - "rule 1", "rule 15", "rule 16b", or any numbered rule references
+   - "magic words", "documentation sufficiency check", "qualification gap analysis", or other internal process names
+   - "training examples", "reference cases", or mentions of the system learning from prior cases
+   - "insurance reviewer perspective" or language suggesting you are simulating a reviewer role
+   REQUIRED LANGUAGE STYLE:
+   - For Medicare patients: "As per Medicare coverage guidelines, this medically indicated study is approved" or "This study meets Medicare coverage criteria" or "Per Medicare guidelines, the requested study is covered when medically indicated."
+   - For all patients: Frame everything in terms of clinical necessity, established medical guidelines, and standard of care — as a physician would write in a clinical justification letter.
+   - Reference clinical guidelines by their proper medical names (e.g., "ACC/AHA appropriate use criteria", "standard cardiology practice guidelines") rather than internal rule names.
+   - When citing criteria, present them as established medical standards, not as rules from an authorization system.
+   - The rationale should sound like it was written by a cardiologist justifying a study to a peer reviewer — professional, clinical, and authoritative.
 32. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({

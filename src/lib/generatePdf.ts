@@ -119,10 +119,10 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
 
   // Rationale section(s)
   if (data.qualifiedViaSymptom && data.qualifyingRationale) {
-    // Show original AI assessment first
+    // Show initial clinical assessment first
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Original AI Assessment", 20, y);
+    doc.text("Clinical Assessment", 20, y);
     y += 8;
 
     doc.setFontSize(10);
@@ -168,7 +168,7 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(100, 100, 100);
-    doc.text("* Study qualified based on physician-confirmed symptoms", 20, y);
+    doc.text("* Study authorized based on physician-confirmed clinical findings", 20, y);
     doc.setTextColor(0, 0, 0);
     y += 10;
   } else {
@@ -322,7 +322,7 @@ export function generateReviewSummaryPdf(data: ReviewSummaryData): jsPDF {
   doc.text("Patient", 45, y);
   doc.text("DOS", 85, y);
   doc.text("Study", 110, y);
-  doc.text("AI Decision", 145, y);
+  doc.text("Decision", 145, y);
   doc.text("Review", 175, y);
   y += 6;
 
