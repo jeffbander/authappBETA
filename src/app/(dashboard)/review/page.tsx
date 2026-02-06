@@ -79,6 +79,9 @@ export default function ReviewPage() {
   const [selectedSymptom, setSelectedSymptom] = useState<Record<string, Record<string, string>>>({});
   const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
 
+  // Free-text addendum input state — maps "patientId-fieldIndex" → text value
+  const [freeTextInputs, setFreeTextInputs] = useState<Record<string, string>>({});
+
 
   const providers = useQuery(api.providers.list);
   const clerkProvider = useQuery(
@@ -661,9 +664,44 @@ export default function ReviewPage() {
                                       </div>
                                     );
                                   }
+                                  const inputKey = `${patient._id}-${i}`;
+                                  const inputValue = freeTextInputs[inputKey] || "";
                                   return (
-                                    <div key={i} className="text-sm text-orange-700 bg-orange-50 p-3 rounded-lg">
-                                      {field}
+                                    <div key={i} className="bg-orange-50 p-3 rounded-lg">
+                                      <span className="text-sm text-orange-700">{field}</span>
+                                      <div className="flex gap-2 mt-2">
+                                        <input
+                                          type="text"
+                                          value={inputValue}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            setFreeTextInputs(prev => ({
+                                              ...prev,
+                                              [inputKey]: e.target.value
+                                            }));
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          placeholder="Type clarification..."
+                                          className="flex-1 px-3 py-1.5 text-sm border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                                        />
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (inputValue.trim()) {
+                                              handleAddAddendumInline(patient._id, field, inputValue.trim(), field);
+                                              setFreeTextInputs(prev => {
+                                                const updated = { ...prev };
+                                                delete updated[inputKey];
+                                                return updated;
+                                              });
+                                            }
+                                          }}
+                                          disabled={!resolvedProvider || !inputValue.trim()}
+                                          className="px-4 py-1.5 text-sm font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          Add
+                                        </button>
+                                      </div>
                                     </div>
                                   );
                                 })}
