@@ -28,6 +28,7 @@ import { generateReviewSummaryPdf } from "@/lib/generatePdf";
 import {
   getSuggestionsForPatient,
   generateQualifyingRationale,
+  findScheduledStudy,
   type EligibleSuggestion,
   type StudyType,
 } from "@/lib/studySuggestions";
@@ -498,6 +499,19 @@ export default function ReviewPage() {
                             {formatStudyName(patient.recommendedStudy)}
                             {(patient as any).secondRecommendedStudy && ` + ${formatStudyName((patient as any).secondRecommendedStudy)}`}
                           </span>
+                          {patient.recommendedStudy && patient.recommendedStudy !== "NONE" && (() => {
+                            const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy as StudyType);
+                            return scheduled.isScheduled ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                <Calendar className="w-3 h-3" />
+                                Scheduled
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                                Not Yet Scheduled
+                              </span>
+                            );
+                          })()}
                           {getReviewBadge(patient.review)}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">

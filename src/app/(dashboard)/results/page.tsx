@@ -26,6 +26,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import {
   getSuggestionsForPatient,
   generateQualifyingRationale,
+  findScheduledStudy,
   type EligibleSuggestion,
 } from "@/lib/studySuggestions";
 
@@ -378,6 +379,19 @@ export default function ResultsPage() {
                       {formatStudyName(patient.recommendedStudy)}
                       {patient.secondRecommendedStudy && ` + ${formatStudyName(patient.secondRecommendedStudy)}`}
                     </span>
+                    {patient.recommendedStudy && patient.recommendedStudy !== "NONE" && (() => {
+                      const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy);
+                      return scheduled.isScheduled ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          <Calendar className="w-3 h-3" />
+                          Scheduled
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                          Not Yet Scheduled
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">

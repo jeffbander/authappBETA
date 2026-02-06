@@ -236,7 +236,7 @@ const SCHEDULED_PATTERNS: RegExp[] = [
 /**
  * Check if clinical notes indicate a study is already scheduled
  */
-function findScheduledStudy(
+export function findScheduledStudy(
   clinicalNotes: string,
   studyType: StudyType
 ): { isScheduled: boolean; context?: string } {
