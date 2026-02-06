@@ -121,52 +121,25 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
 
   // Rationale section(s)
   if (data.qualifiedViaSymptom && data.qualifyingRationale) {
-    // Show initial clinical assessment first
+    // Combine original rationale with qualifying rationale(s) into single section
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Clinical Assessment", 20, y);
+    doc.text("Clinical Rationale", 20, y);
     y += 8;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    // Integrate addendums into rationale text
-    const fullRationale = integrateAddendums(data.rationale, data.addendums);
-    const originalLines = doc.splitTextToSize(fullRationale, pageWidth - 40);
-    doc.text(originalLines, 20, y);
-    y += originalLines.length * 5 + 8;
 
-    // Check if we need a new page
-    if (y > 240) {
-      doc.addPage();
-      y = 20;
-    }
-
-    // Show physician qualification
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 100, 0);
-    doc.text("Physician Qualification", 20, y);
-    doc.setTextColor(0, 0, 0);
-    y += 8;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const qualifyingLines = doc.splitTextToSize(data.qualifyingRationale, pageWidth - 40);
-    doc.text(qualifyingLines, 20, y);
-    y += qualifyingLines.length * 5 + 4;
-
-    // Second study qualification if present
+    // Build combined rationale: original + addendums + qualifying rationale(s)
+    let combinedRationale = integrateAddendums(data.rationale, data.addendums);
+    combinedRationale += " " + data.qualifyingRationale;
     if (data.secondRecommendedStudy && data.secondQualifyingRationale) {
-      if (y > 240) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const secondLines = doc.splitTextToSize(data.secondQualifyingRationale, pageWidth - 40);
-      doc.text(secondLines, 20, y);
-      y += secondLines.length * 5 + 4;
+      combinedRationale += " " + data.secondQualifyingRationale;
     }
+
+    const rationaleLines = doc.splitTextToSize(combinedRationale, pageWidth - 40);
+    doc.text(rationaleLines, 20, y);
+    y += rationaleLines.length * 5 + 4;
 
     // Add note about qualification
     doc.setFontSize(8);
