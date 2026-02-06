@@ -23,7 +23,6 @@ import {
   Lightbulb,
   Sparkles,
   Calendar,
-  Plus,
 } from "lucide-react";
 import { generateReviewSummaryPdf } from "@/lib/generatePdf";
 import {
@@ -45,6 +44,21 @@ const FEEDBACK_CATEGORIES = [
   { value: "OTHER", label: "Other" },
 ] as const;
 
+// Parse options from missing field text like "(whether new, recurrent, or worsening)"
+function parseOptionsFromMissingField(field: string): { label: string; options: string[] } | null {
+  const match = field.match(/\((?:whether\s+)?(.+)\)/i);
+  if (!match) return null;
+
+  const label = field.replace(/\s*\(.*\)/, '').trim();
+  const optionsText = match[1];
+  const options = optionsText
+    .split(/,\s*|\s+or\s+/)
+    .map(o => o.trim())
+    .filter(o => o.length > 0);
+
+  return options.length > 1 ? { label, options } : null;
+}
+
 export default function ReviewPage() {
   const { user } = useUser();
   const [providerFilter, setProviderFilter] = useState("");
@@ -65,10 +79,6 @@ export default function ReviewPage() {
   const [selectedSymptom, setSelectedSymptom] = useState<Record<string, Record<string, string>>>({});
   const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
 
-  // Addendum modal state
-  const [addendumModalPatientId, setAddendumModalPatientId] = useState<string | null>(null);
-  const [addendumText, setAddendumText] = useState("");
-  const [addendumModalMissingFields, setAddendumModalMissingFields] = useState<string[]>([]);
 
   const providers = useQuery(api.providers.list);
   const clerkProvider = useQuery(
@@ -243,18 +253,15 @@ export default function ReviewPage() {
     }
   };
 
-  const handleAddAddendum = async () => {
-    if (!addendumModalPatientId || !addendumText || !resolvedProvider) return;
+  const handleAddAddendumInline = async (patientId: string, label: string, selectedOption: string) => {
+    if (!resolvedProvider) return;
     try {
       await addAddendumMutation({
-        patientId: addendumModalPatientId as Id<"patients">,
-        text: addendumText,
+        patientId: patientId as Id<"patients">,
+        text: `${label}: ${selectedOption}`,
         addedBy: user?.id || "",
         addedByName: resolvedProvider.name,
       });
-      setAddendumModalPatientId(null);
-      setAddendumText("");
-      setAddendumModalMissingFields([]);
     } catch (error) {
       console.error("Error adding addendum:", error);
     }
@@ -623,11 +630,38 @@ export default function ReviewPage() {
                           {patient.missingFields && patient.missingFields.length > 0 && (
                             <div className="mt-4">
                               <span className="text-xs font-medium text-slate-500">Missing Fields</span>
-                              <ul className="text-sm text-orange-700 mt-1 bg-orange-50 p-3 rounded-lg list-disc list-inside">
-                                {patient.missingFields.map((f, i) => (
-                                  <li key={i}>{f}</li>
-                                ))}
-                              </ul>
+                              <div className="mt-2 space-y-2">
+                                {patient.missingFields.map((field, i) => {
+                                  const parsed = parseOptionsFromMissingField(field);
+                                  if (parsed) {
+                                    return (
+                                      <div key={i} className="bg-orange-50 p-3 rounded-lg">
+                                        <span className="text-sm text-orange-700">{parsed.label}:</span>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          {parsed.options.map((option, j) => (
+                                            <button
+                                              key={j}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAddAddendumInline(patient._id, parsed.label, option);
+                                              }}
+                                              disabled={!resolvedProvider}
+                                              className="px-3 py-1 text-sm bg-white border border-orange-300 rounded-full hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                              {option}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div key={i} className="text-sm text-orange-700 bg-orange-50 p-3 rounded-lg">
+                                      {field}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
 
@@ -907,21 +941,6 @@ export default function ReviewPage() {
                                 </button>
                               </>
                             )}
-                            {/* Add Addendum button - only show if patient has missing fields */}
-                            {patient.missingFields && patient.missingFields.length > 0 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAddendumModalPatientId(patient._id);
-                                setAddendumModalMissingFields(patient.missingFields || []);
-                              }}
-                              disabled={!resolvedProvider}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Add Addendum
-                            </button>
-                            )}
                           </div>
                         </div>
                       )}
@@ -1035,47 +1054,6 @@ export default function ReviewPage() {
         </div>
       )}
 
-      {/* Addendum Modal */}
-      {addendumModalPatientId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Add Addendum
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">
-              Select the documentation item to add to this patient record.
-            </p>
-
-            <select
-              value={addendumText}
-              onChange={(e) => setAddendumText(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-              autoFocus
-            >
-              <option value="">Select documentation to add...</option>
-              {addendumModalMissingFields.map((field, idx) => (
-                <option key={idx} value={field}>{field}</option>
-              ))}
-            </select>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => { setAddendumModalPatientId(null); setAddendumText(""); setAddendumModalMissingFields([]); }}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddAddendum}
-                disabled={!addendumText}
-                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add Addendum
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
