@@ -68,6 +68,7 @@ export default function ReviewPage() {
   // Addendum modal state
   const [addendumModalPatientId, setAddendumModalPatientId] = useState<string | null>(null);
   const [addendumText, setAddendumText] = useState("");
+  const [addendumModalMissingFields, setAddendumModalMissingFields] = useState<string[]>([]);
 
   const providers = useQuery(api.providers.list);
   const clerkProvider = useQuery(
@@ -243,16 +244,17 @@ export default function ReviewPage() {
   };
 
   const handleAddAddendum = async () => {
-    if (!addendumModalPatientId || !addendumText.trim() || !resolvedProvider) return;
+    if (!addendumModalPatientId || !addendumText || !resolvedProvider) return;
     try {
       await addAddendumMutation({
         patientId: addendumModalPatientId as Id<"patients">,
-        text: addendumText.trim(),
+        text: addendumText,
         addedBy: user?.id || "",
         addedByName: resolvedProvider.name,
       });
       setAddendumModalPatientId(null);
       setAddendumText("");
+      setAddendumModalMissingFields([]);
     } catch (error) {
       console.error("Error adding addendum:", error);
     }
@@ -905,15 +907,21 @@ export default function ReviewPage() {
                                 </button>
                               </>
                             )}
-                            {/* Add Addendum button - always available */}
+                            {/* Add Addendum button - only show if patient has missing fields */}
+                            {patient.missingFields && patient.missingFields.length > 0 && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setAddendumModalPatientId(patient._id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAddendumModalPatientId(patient._id);
+                                setAddendumModalMissingFields(patient.missingFields || []);
+                              }}
                               disabled={!resolvedProvider}
                               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <Plus className="w-4 h-4" />
                               Add Addendum
                             </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1035,28 +1043,31 @@ export default function ReviewPage() {
               Add Addendum
             </h3>
             <p className="text-sm text-slate-500 mb-4">
-              Add a clarification or additional note to this patient record.
+              Select the documentation item to add to this patient record.
             </p>
 
-            <textarea
+            <select
               value={addendumText}
               onChange={(e) => setAddendumText(e.target.value)}
-              placeholder="Enter your addendum or clarification..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-              rows={4}
               autoFocus
-            />
+            >
+              <option value="">Select documentation to add...</option>
+              {addendumModalMissingFields.map((field, idx) => (
+                <option key={idx} value={field}>{field}</option>
+              ))}
+            </select>
 
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() => { setAddendumModalPatientId(null); setAddendumText(""); }}
+                onClick={() => { setAddendumModalPatientId(null); setAddendumText(""); setAddendumModalMissingFields([]); }}
                 className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddAddendum}
-                disabled={!addendumText.trim()}
+                disabled={!addendumText}
                 className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add Addendum
