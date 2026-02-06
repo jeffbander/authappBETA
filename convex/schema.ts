@@ -64,6 +64,13 @@ export default defineSchema({
     secondQualifyingRationale: v.optional(v.string()),
     // PDF referral upload fields
     referralPdfStorageId: v.optional(v.id("_storage")),  // Convex storage ID for uploaded PDF
+    // Physician addendums/clarifications
+    addendums: v.optional(v.array(v.object({
+      text: v.string(),
+      addedBy: v.string(),
+      addedByName: v.string(),
+      addedAt: v.number(),
+    }))),
     createdAt: v.number(),
     createdBy: v.string(),
     archived: v.boolean(),

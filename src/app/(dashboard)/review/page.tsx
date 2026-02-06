@@ -23,6 +23,7 @@ import {
   Lightbulb,
   Sparkles,
   Calendar,
+  Plus,
 } from "lucide-react";
 import { generateReviewSummaryPdf } from "@/lib/generatePdf";
 import {
@@ -64,6 +65,10 @@ export default function ReviewPage() {
   const [selectedSymptom, setSelectedSymptom] = useState<Record<string, Record<string, string>>>({});
   const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
 
+  // Addendum modal state
+  const [addendumModalPatientId, setAddendumModalPatientId] = useState<string | null>(null);
+  const [addendumText, setAddendumText] = useState("");
+
   const providers = useQuery(api.providers.list);
   const clerkProvider = useQuery(
     api.providers.getByClerkUserId,
@@ -88,6 +93,7 @@ export default function ReviewPage() {
   const resetForReprocessingMutation = useMutation(api.patients.resetForReprocessing);
   const processPatientAction = useAction(api.processing.processPatient);
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
+  const addAddendumMutation = useMutation(api.patients.addAddendum);
 
   const handleApprove = async (patientId: Id<"patients">) => {
     if (!resolvedProvider) return;
@@ -233,6 +239,22 @@ export default function ReviewPage() {
       console.error("Error applying qualification:", error);
     } finally {
       setApplyingQualificationId(null);
+    }
+  };
+
+  const handleAddAddendum = async () => {
+    if (!addendumModalPatientId || !addendumText.trim() || !resolvedProvider) return;
+    try {
+      await addAddendumMutation({
+        patientId: addendumModalPatientId as Id<"patients">,
+        text: addendumText.trim(),
+        addedBy: user?.id || "",
+        addedByName: resolvedProvider.name,
+      });
+      setAddendumModalPatientId(null);
+      setAddendumText("");
+    } catch (error) {
+      console.error("Error adding addendum:", error);
     }
   };
 
@@ -816,6 +838,23 @@ export default function ReviewPage() {
                             </div>
                           )}
 
+                          {/* Addendums */}
+                          {(patient as any).addendums && (patient as any).addendums.length > 0 && (
+                            <div className="mt-4">
+                              <span className="text-xs font-medium text-slate-500">Addendums</span>
+                              <div className="mt-2 space-y-2">
+                                {(patient as any).addendums.map((addendum: { text: string; addedByName: string; addedAt: number }, idx: number) => (
+                                  <div key={idx} className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                                    <p className="text-sm text-slate-700">{addendum.text}</p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                      {addendum.addedByName} • {format(new Date(addendum.addedAt), "MMM d, yyyy h:mm a")}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Action Buttons */}
                           <div className="mt-4 flex gap-2">
                             {patient.status === "COMPLETE" && (patient.decision === "APPROVED_CLEAN" || patient.decision === "APPROVED_NEEDS_LETTER") && patient.recommendedStudy !== "NONE" && (
@@ -866,6 +905,15 @@ export default function ReviewPage() {
                                 </button>
                               </>
                             )}
+                            {/* Add Addendum button - always available */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setAddendumModalPatientId(patient._id); }}
+                              disabled={!resolvedProvider}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Addendum
+                            </button>
                           </div>
                         </div>
                       )}
@@ -973,6 +1021,45 @@ export default function ReviewPage() {
                 }`}
               >
                 {feedbackOnlyMode ? "Submit Feedback" : "Submit Hold"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Addendum Modal */}
+      {addendumModalPatientId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              Add Addendum
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Add a clarification or additional note to this patient record.
+            </p>
+
+            <textarea
+              value={addendumText}
+              onChange={(e) => setAddendumText(e.target.value)}
+              placeholder="Enter your addendum or clarification..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+              rows={4}
+              autoFocus
+            />
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setAddendumModalPatientId(null); setAddendumText(""); }}
+                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddAddendum}
+                disabled={!addendumText.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add Addendum
               </button>
             </div>
           </div>

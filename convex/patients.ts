@@ -211,3 +211,27 @@ export const applyQualifyingSuggestion = mutation({
     });
   },
 });
+
+export const addAddendum = mutation({
+  args: {
+    patientId: v.id("patients"),
+    text: v.string(),
+    addedBy: v.string(),
+    addedByName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db.get(args.patientId);
+    if (!patient) throw new Error("Patient not found");
+
+    const newAddendum = {
+      text: args.text,
+      addedBy: args.addedBy,
+      addedByName: args.addedByName,
+      addedAt: Date.now(),
+    };
+
+    await ctx.db.patch(args.patientId, {
+      addendums: [...(patient.addendums || []), newAddendum],
+    });
+  },
+});
