@@ -110,3 +110,36 @@ export const listWithSignatureUrls = query({
     return results;
   },
 });
+
+// Seed Mount Sinai West Cardiology providers
+export const seedProviders = mutation({
+  handler: async (ctx) => {
+    const providersToSeed = [
+      { name: "Jeffrey Bander", credentials: "MD", npi: "TBD" },
+      { name: "Nina Kukar", credentials: "MD", npi: "TBD" },
+      { name: "Rony Shimony", credentials: "MD", npi: "TBD" },
+      { name: "Nenad Trubelja", credentials: "MD", npi: "TBD" },
+      { name: "Judith Z. Goldfinger", credentials: "MD", npi: "TBD" },
+      { name: "Bette Kim", credentials: "MD", npi: "TBD" },
+      { name: "Kiruthika Balasundaram", credentials: "MD", npi: "TBD" },
+      { name: "Krysthel Engstrom", credentials: "MD", npi: "TBD" },
+      { name: "Robert Kornberg", credentials: "MD", npi: "TBD" },
+      { name: "Sooraj Shah", credentials: "MD", npi: "TBD" },
+      { name: "Jared Leventhal", credentials: "MD", npi: "TBD" },
+      { name: "Paul Leis", credentials: "DO", npi: "TBD" },
+    ];
+
+    const existingProviders = await ctx.db.query("providers").collect();
+    const existingNames = new Set(existingProviders.map((p) => p.name));
+
+    let added = 0;
+    for (const provider of providersToSeed) {
+      if (!existingNames.has(provider.name)) {
+        await ctx.db.insert("providers", provider);
+        added++;
+      }
+    }
+
+    return { added, total: providersToSeed.length };
+  },
+});
