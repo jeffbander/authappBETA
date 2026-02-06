@@ -582,9 +582,9 @@ export function generateWorklistPdf(data: WorklistData): jsPDF {
       doc.text(`   \u2022 Patient has ${patient.diagnosis}, could qualify with symptom confirmation`, 20, y);
       y += 5;
 
-      // Suggested symptoms
+      // Qualifying symptoms
       if (patient.suggestedSymptoms.length > 0) {
-        const symptomsText = `   \u2022 Suggested symptoms: ${patient.suggestedSymptoms.join(", ")}`;
+        const symptomsText = `   \u2022 The test may be warranted if the patient has the following symptoms: ${patient.suggestedSymptoms.join(", ")}`;
         const lines = doc.splitTextToSize(symptomsText, pageWidth - 45);
         doc.text(lines, 20, y);
         y += lines.length * 4 + 1;
