@@ -429,3 +429,180 @@ function integrateAddendums(
 function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+interface WorklistData {
+  providerName: string;
+  providerCredentials: string;
+  dateOfService: string;
+  approvedPatients: {
+    patientName: string;
+    mrn: string;
+    recommendedStudy: string;
+    rationale: string;
+  }[];
+  opportunityPatients: {
+    patientName: string;
+    mrn: string;
+    suggestedStudy: string;
+    diagnosis: string;
+    suggestedSymptoms: string[];
+  }[];
+}
+
+export function generateWorklistPdf(data: WorklistData): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  // Header
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 51, 102);
+  doc.text("MSW Heart Cardiology", pageWidth / 2, y, { align: "center" });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Provider Worklist - Unscheduled Tests", pageWidth / 2, y, { align: "center" });
+  y += 5;
+
+  // Divider
+  doc.setDrawColor(0, 51, 102);
+  doc.setLineWidth(0.5);
+  doc.line(20, y, pageWidth - 20, y);
+  y += 10;
+
+  // Provider & Date Info
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${data.providerName}${data.providerCredentials ? `, ${data.providerCredentials}` : ""}`, 20, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Date of Service: ${data.dateOfService}`, 20, y);
+  y += 10;
+
+  // Approved - Needs Scheduling Section
+  if (data.approvedPatients.length > 0) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 100, 0);
+    doc.text("APPROVED - NEEDS SCHEDULING", 20, y);
+    doc.setTextColor(0, 0, 0);
+    y += 2;
+    doc.setDrawColor(0, 100, 0);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, pageWidth - 20, y);
+    y += 6;
+
+    doc.setFontSize(10);
+    for (let i = 0; i < data.approvedPatients.length; i++) {
+      const patient = data.approvedPatients[i];
+
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // Patient header
+      doc.setFont("helvetica", "bold");
+      doc.text(`${i + 1}. ${patient.patientName} (MRN: ${patient.mrn})`, 20, y);
+      y += 5;
+
+      // Test
+      doc.setFont("helvetica", "normal");
+      doc.text(`   Test: ${patient.recommendedStudy}`, 20, y);
+      y += 5;
+
+      // Rationale as bullet points
+      if (patient.rationale) {
+        const sentences = patient.rationale
+          .split(/[.!?]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          .slice(0, 3); // Max 3 bullet points
+
+        for (const sentence of sentences) {
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          const bulletText = `   \u2022 ${sentence}`;
+          const lines = doc.splitTextToSize(bulletText, pageWidth - 45);
+          doc.text(lines, 20, y);
+          y += lines.length * 4 + 1;
+        }
+      }
+      y += 4;
+    }
+    y += 6;
+  }
+
+  // Opportunities to Schedule Section
+  if (data.opportunityPatients.length > 0) {
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(102, 51, 153);
+    doc.text("OPPORTUNITIES TO SCHEDULE", 20, y);
+    doc.setTextColor(0, 0, 0);
+    y += 2;
+    doc.setDrawColor(102, 51, 153);
+    doc.setLineWidth(0.3);
+    doc.line(20, y, pageWidth - 20, y);
+    y += 6;
+
+    doc.setFontSize(10);
+    const startNum = data.approvedPatients.length + 1;
+    for (let i = 0; i < data.opportunityPatients.length; i++) {
+      const patient = data.opportunityPatients[i];
+
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // Patient header
+      doc.setFont("helvetica", "bold");
+      doc.text(`${startNum + i}. ${patient.patientName} (MRN: ${patient.mrn})`, 20, y);
+      y += 5;
+
+      // Suggested test
+      doc.setFont("helvetica", "normal");
+      doc.text(`   Suggested Test: ${patient.suggestedStudy}`, 20, y);
+      y += 5;
+
+      // Diagnosis
+      doc.text(`   \u2022 Patient has ${patient.diagnosis}, could qualify with symptom confirmation`, 20, y);
+      y += 5;
+
+      // Suggested symptoms
+      if (patient.suggestedSymptoms.length > 0) {
+        const symptomsText = `   \u2022 Suggested symptoms: ${patient.suggestedSymptoms.join(", ")}`;
+        const lines = doc.splitTextToSize(symptomsText, pageWidth - 45);
+        doc.text(lines, 20, y);
+        y += lines.length * 4 + 1;
+      }
+      y += 4;
+    }
+  }
+
+  // Footer
+  y += 5;
+  if (y > 270) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
+  doc.text("CardioAuth", 20, y + 4);
+
+  return doc;
+}

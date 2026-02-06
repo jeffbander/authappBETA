@@ -11,12 +11,14 @@ import {
   Users,
   BookOpen,
   Heart,
+  FileText,
 } from "lucide-react";
 
 const navItems = [
   { href: "/input", label: "Input", icon: ClipboardList },
   { href: "/results", label: "Results", icon: BarChart3 },
   { href: "/review", label: "Doctor Review", icon: ClipboardCheck },
+  { href: "/worklist", label: "Worklist", icon: FileText },
   { href: "/signature", label: "Signature Setup", icon: PenTool },
   { href: "/admin/providers", label: "Providers", icon: Users },
   { href: "/admin/rules", label: "Auth Rules", icon: BookOpen },
