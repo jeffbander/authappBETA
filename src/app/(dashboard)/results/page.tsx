@@ -119,6 +119,7 @@ export default function ResultsPage() {
       qualifyingRationale: patient.qualifyingRationale,
       secondRecommendedStudy: patient.secondRecommendedStudy || undefined,
       secondQualifyingRationale: patient.secondQualifyingRationale || undefined,
+      addendums: patient.addendums,
     });
     doc.save(`attestation_${patient.mrn}_${patient.dateOfService}.pdf`);
   };

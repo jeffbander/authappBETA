@@ -218,6 +218,7 @@ export const addAddendum = mutation({
     text: v.string(),
     addedBy: v.string(),
     addedByName: v.string(),
+    missingFieldToRemove: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const patient = await ctx.db.get(args.patientId);
@@ -230,8 +231,17 @@ export const addAddendum = mutation({
       addedAt: Date.now(),
     };
 
+    // Remove the missing field if specified
+    let updatedMissingFields = patient.missingFields;
+    if (args.missingFieldToRemove && patient.missingFields) {
+      updatedMissingFields = patient.missingFields.filter(
+        f => f !== args.missingFieldToRemove
+      );
+    }
+
     await ctx.db.patch(args.patientId, {
       addendums: [...(patient.addendums || []), newAddendum],
+      missingFields: updatedMissingFields,
     });
   },
 });

@@ -253,7 +253,12 @@ export default function ReviewPage() {
     }
   };
 
-  const handleAddAddendumInline = async (patientId: string, label: string, selectedOption: string) => {
+  const handleAddAddendumInline = async (
+    patientId: string,
+    label: string,
+    selectedOption: string,
+    originalMissingField: string
+  ) => {
     if (!resolvedProvider) return;
     try {
       await addAddendumMutation({
@@ -261,6 +266,7 @@ export default function ReviewPage() {
         text: `${label}: ${selectedOption}`,
         addedBy: user?.id || "",
         addedByName: resolvedProvider.name,
+        missingFieldToRemove: originalMissingField,
       });
     } catch (error) {
       console.error("Error adding addendum:", error);
@@ -643,7 +649,7 @@ export default function ReviewPage() {
                                               key={j}
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleAddAddendumInline(patient._id, parsed.label, option);
+                                                handleAddAddendumInline(patient._id, parsed.label, option, field);
                                               }}
                                               disabled={!resolvedProvider}
                                               className="px-3 py-1 text-sm bg-white border border-orange-300 rounded-full hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

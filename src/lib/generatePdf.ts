@@ -25,6 +25,8 @@ interface PdfData {
   // Second qualified study
   secondRecommendedStudy?: string;
   secondQualifyingRationale?: string;
+  // Physician addendums/clarifications
+  addendums?: { text: string; addedByName: string; addedAt: number }[];
 }
 
 export function generateAttestationPdf(data: PdfData): jsPDF {
@@ -127,7 +129,9 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    const originalLines = doc.splitTextToSize(data.rationale, pageWidth - 40);
+    // Integrate addendums into rationale text
+    const fullRationale = integrateAddendums(data.rationale, data.addendums);
+    const originalLines = doc.splitTextToSize(fullRationale, pageWidth - 40);
     doc.text(originalLines, 20, y);
     y += originalLines.length * 5 + 8;
 
@@ -180,7 +184,9 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    const rationaleLines = doc.splitTextToSize(data.rationale, pageWidth - 40);
+    // Integrate addendums into rationale text
+    const fullRationale = integrateAddendums(data.rationale, data.addendums);
+    const rationaleLines = doc.splitTextToSize(fullRationale, pageWidth - 40);
     doc.text(rationaleLines, 20, y);
     y += rationaleLines.length * 5 + 10;
   }
@@ -413,4 +419,40 @@ function formatStudy(study: string): string {
     default:
       return study;
   }
+}
+
+// Integrate addendums into rationale text using find & replace
+function integrateAddendums(
+  rationale: string,
+  addendums?: { text: string; addedByName: string; addedAt: number }[]
+): string {
+  if (!addendums || addendums.length === 0) {
+    return rationale;
+  }
+
+  let result = rationale;
+  for (const addendum of addendums) {
+    // Parse "Label: option" format
+    const colonIndex = addendum.text.indexOf(':');
+    if (colonIndex > 0) {
+      const label = addendum.text.substring(0, colonIndex).trim();
+      const option = addendum.text.substring(colonIndex + 1).trim();
+
+      // Try to find and replace the label in the rationale (case-insensitive)
+      const regex = new RegExp(`\\b${escapeRegExp(label)}\\b`, 'i');
+      if (regex.test(result)) {
+        result = result.replace(regex, `${option} ${label.toLowerCase()}`);
+      } else {
+        // Fallback: append as sentence
+        result += ` The ${label.toLowerCase()} is ${option}.`;
+      }
+    }
+  }
+
+  return result;
+}
+
+// Helper to escape special regex characters
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
