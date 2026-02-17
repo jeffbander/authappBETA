@@ -173,7 +173,7 @@ export default function ResultsPage() {
     const doc = generateAttestationPdf({
       patientName: patient.extractedPatientName || "",
       patientDob: patient.extractedDob || "",
-      mrn: patient.mrn,
+      mrn: patient.mrn || patient.extractedMrn || "",
       dateOfService: patient.dateOfService,
       physician: patient.extractedPhysician || "",
       recommendedStudy: patient.recommendedStudy || "",
@@ -193,7 +193,7 @@ export default function ResultsPage() {
       letterJustifications: patient.letterJustifications || undefined,
       letterJustificationOther: patient.letterJustificationOther || undefined,
     });
-    doc.save(`attestation_${patient.mrn}_${patient.dateOfService}.pdf`);
+    doc.save(`attestation_${patient.mrn || patient.extractedMrn || "unknown"}_${patient.dateOfService}.pdf`);
   };
 
   const handleApplyQualification = async (
@@ -431,7 +431,7 @@ export default function ResultsPage() {
                   <div className="flex items-center gap-4">
                     <div>
                       <span className="text-sm font-semibold text-slate-900">
-                        MRN: {patient.mrn}
+                        MRN: {patient.mrn || patient.extractedMrn || "—"}
                       </span>
                       {patient.extractedPatientName && (
                         <span className="text-sm text-slate-500 ml-2">

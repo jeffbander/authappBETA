@@ -290,7 +290,7 @@ export default function ReviewPage() {
       approvedCount,
       heldCount,
       patients: allPatients.map((p) => ({
-        mrn: p.mrn,
+        mrn: p.mrn || p.extractedMrn || "—",
         patientName: p.extractedPatientName || "—",
         dateOfService: p.dateOfService,
         recommendedStudy: formatStudyName(p.recommendedStudy) + ((p as any).secondRecommendedStudy ? ` + ${formatStudyName((p as any).secondRecommendedStudy)}` : ""),
@@ -528,7 +528,7 @@ export default function ReviewPage() {
                       >
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="text-sm font-semibold text-slate-900">
-                            MRN: {patient.mrn}
+                            MRN: {patient.mrn || patient.extractedMrn || "—"}
                           </span>
                           {patient.extractedPatientName && (
                             <span className="text-sm text-slate-500">

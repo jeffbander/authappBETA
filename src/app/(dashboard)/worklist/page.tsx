@@ -100,13 +100,13 @@ export default function WorklistPage() {
       dateOfService: dateFilter,
       approvedPatients: approved.map((p) => ({
         patientName: p.extractedPatientName || "Unknown",
-        mrn: p.mrn,
+        mrn: p.mrn || p.extractedMrn || "—",
         recommendedStudy: formatStudyName(p.recommendedStudy),
         rationale: p.rationale || "",
       })),
       opportunityPatients: opportunities.map((p) => ({
         patientName: p.extractedPatientName || "Unknown",
-        mrn: p.mrn,
+        mrn: p.mrn || p.extractedMrn || "—",
         suggestedStudy: formatStudyName(p.suggestions[0]?.suggestion.studyType),
         diagnosis: p.suggestions[0]?.matchingDiagnosis || "",
         suggestedSymptoms: p.suggestions[0]?.suggestion.symptoms || [],
@@ -206,7 +206,7 @@ export default function WorklistPage() {
                         <p className="font-medium text-slate-900">
                           {patient.extractedPatientName || "Unknown"}{" "}
                           <span className="text-slate-500 font-normal">
-                            (MRN: {patient.mrn})
+                            (MRN: {patient.mrn || patient.extractedMrn || "—"})
                           </span>
                         </p>
                         <p className="text-sm text-green-700 font-medium mt-1">
@@ -244,7 +244,7 @@ export default function WorklistPage() {
                         <p className="font-medium text-slate-900">
                           {patient.extractedPatientName || "Unknown"}{" "}
                           <span className="text-slate-500 font-normal">
-                            (MRN: {patient.mrn})
+                            (MRN: {patient.mrn || patient.extractedMrn || "—"})
                           </span>
                         </p>
                         <p className="text-sm text-purple-700 font-medium mt-1">

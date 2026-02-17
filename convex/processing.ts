@@ -8,7 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // Helper function to build the authorization prompt
 function buildAuthorizationPrompt(
   patient: {
-    mrn: string;
+    mrn?: string;
     dateOfService: string;
     patientType: string;
     clinicalNotes: string;
@@ -36,7 +36,7 @@ Use this extracted information in combination with any additional notes provided
 ${rulesText}${referenceCasesSection}
 
 ## Patient Information
-- MRN: ${patient.mrn}
+- MRN: ${patient.mrn || "(not provided - extract from notes if available)"}
 - Date of Service: ${patient.dateOfService}
 - Patient Type: ${patient.patientType}
 - Clinical Notes: ${patient.clinicalNotes || "(See attached referral PDF)"}
@@ -113,7 +113,7 @@ Analyze the clinical information and return a JSON response with the following s
 ${rulesText}${referenceCasesSection}
 
 ## Patient Information
-- MRN: ${patient.mrn}
+- MRN: ${patient.mrn || "(not provided - extract from notes if available)"}
 - Date of Service: ${patient.dateOfService}
 - Patient Type: ${patient.patientType}
 - Clinical Notes: ${patient.clinicalNotes}
@@ -137,6 +137,7 @@ Analyze the clinical information and return a JSON response with the following s
   "extractedPatientName": "Patient name from notes" | null,
   "extractedDob": "Patient DOB from notes" | null,
   "extractedPhysician": "Referring physician from notes" | null,
+  "extractedMrn": "Patient MRN (Medical Record Number) from notes" | null,
   "extractedDiagnoses": ["list", "of", "diagnoses"],
   "extractedSymptoms": ["list", "of", "symptoms"],
   "extractedPriorStudies": ["list", "of", "prior", "studies"],
@@ -414,6 +415,7 @@ Important rules:
         extractedPatientName: result.extractedPatientName || undefined,
         extractedDob: result.extractedDob || undefined,
         extractedPhysician: result.extractedPhysician || undefined,
+        extractedMrn: result.extractedMrn || undefined,
         extractedDiagnoses: result.extractedDiagnoses || undefined,
         extractedSymptoms: result.extractedSymptoms || undefined,
         extractedPriorStudies: result.extractedPriorStudies || undefined,

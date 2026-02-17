@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 export default defineSchema({
   patients: defineTable({
-    mrn: v.string(),
+    mrn: v.optional(v.string()),
     dateOfService: v.string(),
     patientType: v.union(v.literal("NEW"), v.literal("FOLLOWUP")),
     clinicalNotes: v.string(),
@@ -36,6 +36,7 @@ export default defineSchema({
     extractedPatientName: v.optional(v.string()),
     extractedDob: v.optional(v.string()),
     extractedPhysician: v.optional(v.string()),
+    extractedMrn: v.optional(v.string()),
     extractedDiagnoses: v.optional(v.array(v.string())),
     extractedSymptoms: v.optional(v.array(v.string())),
     extractedPriorStudies: v.optional(v.array(v.string())),
