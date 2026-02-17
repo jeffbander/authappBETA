@@ -33,6 +33,7 @@ import {
   getJustificationsForReason,
   detectNeedsLetterReason,
   formatReasonDisplay,
+  getAllJustificationsForStudyType,
   type NeedsLetterReason,
 } from "@/lib/letterJustifications";
 
@@ -804,10 +805,24 @@ export default function ResultsPage() {
                             patient.supportingCriteria
                           )) as NeedsLetterReason | null;
 
-                        if (!reason) return null;
+                        // Get justification options - fallback to all options for study type if reason not detected
+                        let justificationOptions: string[];
+                        let displayReason: string;
 
-                        const category = getJustificationsForReason(reason);
-                        if (!category) return null;
+                        if (reason) {
+                          const category = getJustificationsForReason(reason);
+                          if (category) {
+                            justificationOptions = category.justificationOptions;
+                            displayReason = formatReasonDisplay(reason);
+                          } else {
+                            justificationOptions = getAllJustificationsForStudyType(patient.recommendedStudy);
+                            displayReason = "Borderline case requiring justification";
+                          }
+                        } else {
+                          // Fallback: show ALL options for this study type
+                          justificationOptions = getAllJustificationsForStudyType(patient.recommendedStudy);
+                          displayReason = "Borderline case requiring justification";
+                        }
 
                         const isAlreadyConfirmed = !!patient.letterJustificationsConfirmedAt;
                         const patientSelected = letterJustifications[patient._id] || new Set<string>();
@@ -828,7 +843,7 @@ export default function ResultsPage() {
                                 <p className="text-sm text-yellow-700 mt-1">
                                   Reason:{" "}
                                   <span className="font-medium">
-                                    {formatReasonDisplay(reason)}
+                                    {displayReason}
                                   </span>
                                 </p>
 
@@ -859,7 +874,7 @@ export default function ResultsPage() {
                                       Select applicable justifications (at least one required):
                                     </p>
                                     <div className="space-y-2">
-                                      {category.justificationOptions.map((option) => (
+                                      {justificationOptions.map((option) => (
                                         <label
                                           key={option}
                                           className="flex items-start gap-2 cursor-pointer"

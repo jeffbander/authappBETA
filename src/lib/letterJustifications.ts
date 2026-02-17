@@ -297,3 +297,31 @@ export const ALL_NEEDS_LETTER_REASONS: NeedsLetterReason[] = [
   "MINOR_STENOSIS_FREQUENT_FOLLOWUP",
   "VENOUS_INSUFFICIENCY_NO_ULCERATION",
 ];
+
+/**
+ * Get all justification options for a given study type.
+ * Used as fallback when specific reason cannot be detected.
+ */
+export function getAllJustificationsForStudyType(
+  studyType: string | undefined
+): string[] {
+  if (!studyType) return getAllJustifications();
+
+  const matching = JUSTIFICATION_CATEGORIES.filter(
+    (c) => c.studyType === studyType
+  );
+  if (matching.length === 0) return getAllJustifications();
+
+  // Flatten all options from matching categories, deduplicated
+  const allOptions = matching.flatMap((c) => c.justificationOptions);
+  return Array.from(new Set(allOptions));
+}
+
+/**
+ * Get all justification options across all categories (deduplicated).
+ */
+export function getAllJustifications(): string[] {
+  return Array.from(
+    new Set(JUSTIFICATION_CATEGORIES.flatMap((c) => c.justificationOptions))
+  );
+}
