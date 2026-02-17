@@ -51,6 +51,7 @@ APPROVED if ANY of the following:
 - New onset dyspnea on exertion to evaluate cardiac cause
 - Hypertrophic cardiomyopathy with exertional symptoms
 - Pre-operative assessment for valve surgery candidates
+- Shortness of breath as angina equivalent (ICD-10: R06.02 Shortness of breath, R07.89 Other chest pain)
 
 REQUIRES LETTER if:
 - Follow-up of known valve disease without new symptoms (if >1 year since last)
