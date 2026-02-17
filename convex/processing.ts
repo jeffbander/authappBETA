@@ -297,7 +297,6 @@ Important rules:
    NUCLEAR STRESS TEST CONTRAINDICATIONS (flag for review if detected):
    - Severe valvular disease (severe AS, severe MS, severe AR, severe MR)
    - Uncontrolled asthma or active bronchospasm (regadenoson/adenosine contraindicated)
-   - Known intracardiac thrombus (LV thrombus, LA thrombus — risk of embolization with stress)
    - Significant pericardial effusion
    - Pregnancy or suspected pregnancy
    - Heart failure with reduced ejection fraction (HFrEF, EF <40%, reduced LVEF — may affect interpretation and safety)
@@ -308,7 +307,6 @@ Important rules:
    - Left bundle branch block (LBBB — causes septal wall motion abnormality, affects interpretation)
    - Pacemaker or paced rhythm (affects wall motion interpretation)
    - Mobility limitations requiring cane/walker (unable to achieve adequate exercise capacity for treadmill stress)
-   - Known intracardiac thrombus
    - Pregnancy or suspected pregnancy
 
    When a contraindication is detected:

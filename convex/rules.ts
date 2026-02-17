@@ -36,7 +36,6 @@ DENIED if:
 CONTRAINDICATIONS (flag for provider discretion, do not auto-deny):
 - Severe valvular disease (severe AS, MS, AR, MR — may affect hemodynamic response to stress)
 - Uncontrolled asthma or active bronchospasm (regadenoson/adenosine contraindicated)
-- Known intracardiac thrombus (LV or LA thrombus — risk of embolization with stress)
 - Significant pericardial effusion
 - Pregnancy or suspected pregnancy
 - HFrEF/reduced LVEF (EF <40% — may affect interpretation and safety)`,
@@ -69,7 +68,6 @@ CONTRAINDICATIONS (flag for provider discretion, do not auto-deny):
 - LBBB (causes baseline septal wall motion abnormality, affects interpretation)
 - Pacemaker or paced rhythm (affects wall motion interpretation)
 - Mobility limitations requiring cane/walker (unable to achieve target heart rate on treadmill)
-- Known intracardiac thrombus
 - Pregnancy or suspected pregnancy`,
   },
   {
@@ -87,6 +85,7 @@ APPROVED if ANY of the following:
 - Syncope with suspected cardiac etiology
 - Chemotherapy cardiotoxicity monitoring (per protocol)
 - Pre-operative for cardiac surgery
+- Known heart failure diagnosis more than one year old (annual reassessment)
 
 REQUIRES LETTER if:
 - Follow-up of stable valve disease more frequently than annually
