@@ -49,7 +49,8 @@ export const updateWithResults = mutation({
     decision: v.optional(
       v.union(
         v.literal("APPROVED_CLEAN"),
-        v.literal("APPROVED_NEEDS_LETTER"),
+        v.literal("BORDERLINE_NEEDS_LETTER"),
+        v.literal("APPROVED_NEEDS_LETTER"), // Deprecated: kept for backwards compatibility
         v.literal("DENIED")
       )
     ),
@@ -76,6 +77,26 @@ export const updateWithResults = mutation({
       clinicalEvidence: v.string(),
     }))),
     missingFields: v.optional(v.array(v.string())),
+    needsLetterReason: v.optional(
+      v.union(
+        // Nuclear reasons
+        v.literal("ASYMPTOMATIC_HIGH_RISK_SCREENING"),
+        v.literal("REPEAT_NUCLEAR_WITHIN_2_YEARS"),
+        v.literal("PREOP_LOW_RISK_SURGERY"),
+        // Stress Echo reasons
+        v.literal("VALVE_FOLLOWUP_NO_NEW_SYMPTOMS"),
+        v.literal("ATHLETE_SCREENING_HCM_HISTORY"),
+        v.literal("REPEAT_STRESS_ECHO_WITHIN_1_YEAR"),
+        // Echo reasons
+        v.literal("STABLE_VALVE_FREQUENT_FOLLOWUP"),
+        v.literal("STABLE_HF_REPEAT"),
+        v.literal("ROUTINE_HTN_FOLLOWUP"),
+        // Vascular reasons
+        v.literal("ASYMPTOMATIC_CAROTID_SCREENING"),
+        v.literal("MINOR_STENOSIS_FREQUENT_FOLLOWUP"),
+        v.literal("VENOUS_INSUFFICIENCY_NO_ULCERATION")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const { patientId, ...updates } = args;
@@ -155,6 +176,12 @@ export const resetForReprocessing = mutation({
       secondRecommendedStudy: undefined,
       secondQualifyingSymptom: undefined,
       secondQualifyingRationale: undefined,
+      // Clear attestation letter justification fields
+      needsLetterReason: undefined,
+      letterJustifications: undefined,
+      letterJustificationOther: undefined,
+      letterJustificationsConfirmedAt: undefined,
+      letterJustificationsConfirmedBy: undefined,
     });
   },
 });
@@ -242,6 +269,34 @@ export const addAddendum = mutation({
     await ctx.db.patch(args.patientId, {
       addendums: [...(patient.addendums || []), newAddendum],
       missingFields: updatedMissingFields,
+    });
+  },
+});
+
+export const saveLetterJustifications = mutation({
+  args: {
+    patientId: v.id("patients"),
+    justifications: v.array(v.string()),
+    otherText: v.optional(v.string()),
+    confirmedBy: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db.get(args.patientId);
+    if (!patient) throw new Error("Patient not found");
+
+    if (patient.decision !== "BORDERLINE_NEEDS_LETTER" && patient.decision !== "APPROVED_NEEDS_LETTER") {
+      throw new Error("Justifications can only be saved for borderline/needs letter cases");
+    }
+
+    if (args.justifications.length === 0 && !args.otherText) {
+      throw new Error("At least one justification must be selected");
+    }
+
+    await ctx.db.patch(args.patientId, {
+      letterJustifications: args.justifications,
+      letterJustificationOther: args.otherText || undefined,
+      letterJustificationsConfirmedAt: Date.now(),
+      letterJustificationsConfirmedBy: args.confirmedBy,
     });
   },
 });

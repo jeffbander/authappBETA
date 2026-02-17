@@ -337,11 +337,12 @@ export default function ReviewPage() {
             Test Identified
           </span>
         );
-      case "APPROVED_NEEDS_LETTER":
+      case "BORDERLINE_NEEDS_LETTER":
+      case "APPROVED_NEEDS_LETTER": // Backwards compatibility
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
             <FileWarning className="w-3 h-3" />
-            Test Identified - Needs Letter
+            Borderline - Needs Letter
           </span>
         );
       case "DENIED":
@@ -937,7 +938,7 @@ export default function ReviewPage() {
 
                           {/* Action Buttons */}
                           <div className="mt-4 flex gap-2">
-                            {patient.status === "COMPLETE" && (patient.decision === "APPROVED_CLEAN" || patient.decision === "APPROVED_NEEDS_LETTER") && patient.recommendedStudy !== "NONE" && (
+                            {patient.status === "COMPLETE" && (patient.decision === "APPROVED_CLEAN" || patient.decision === "BORDERLINE_NEEDS_LETTER" || patient.decision === "APPROVED_NEEDS_LETTER") && patient.recommendedStudy !== "NONE" && (
                               <>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleApprove(patient._id); }}
@@ -1045,7 +1046,7 @@ export default function ReviewPage() {
                 >
                   <option value="">Select...</option>
                   <option value="APPROVED_CLEAN">Approved</option>
-                  <option value="APPROVED_NEEDS_LETTER">Approved - Needs Letter</option>
+                  <option value="BORDERLINE_NEEDS_LETTER">Borderline - Needs Letter</option>
                   <option value="DENIED">Denied</option>
                 </select>
               </div>

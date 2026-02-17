@@ -29,9 +29,15 @@ import {
   findScheduledStudy,
   type EligibleSuggestion,
 } from "@/lib/studySuggestions";
+import {
+  getJustificationsForReason,
+  detectNeedsLetterReason,
+  formatReasonDisplay,
+  type NeedsLetterReason,
+} from "@/lib/letterJustifications";
 
 type StatusFilter = "" | "PROCESSING" | "COMPLETE" | "NEEDS_REVIEW";
-type DecisionFilter = "" | "APPROVED_CLEAN" | "APPROVED_NEEDS_LETTER" | "DENIED";
+type DecisionFilter = "" | "APPROVED_CLEAN" | "BORDERLINE_NEEDS_LETTER" | "DENIED";
 
 export default function ResultsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
@@ -44,7 +50,14 @@ export default function ResultsPage() {
   const [selectedSymptom, setSelectedSymptom] = useState<Record<string, Record<string, string>>>({});
   const [applyingQualificationId, setApplyingQualificationId] = useState<string | null>(null);
 
+  // Attestation letter justification state — maps patientId → selected justifications
+  const [letterJustifications, setLetterJustifications] = useState<Record<string, Set<string>>>({});
+  const [letterOtherText, setLetterOtherText] = useState<Record<string, string>>({});
+  const [letterOtherChecked, setLetterOtherChecked] = useState<Record<string, boolean>>({});
+  const [savingJustificationsId, setSavingJustificationsId] = useState<string | null>(null);
+
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
+  const saveLetterJustificationsMutation = useMutation(api.patients.saveLetterJustifications);
 
   const providers = useQuery(api.providers.list);
   const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
@@ -58,6 +71,60 @@ export default function ResultsPage() {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleSaveLetterJustifications = async (patientId: Id<"patients">) => {
+    const selected = letterJustifications[patientId] || new Set();
+    const otherChecked = letterOtherChecked[patientId] || false;
+    const otherText = letterOtherText[patientId]?.trim() || "";
+
+    // Validation: need at least one selection or other text
+    if (selected.size === 0 && (!otherChecked || !otherText)) {
+      return;
+    }
+
+    setSavingJustificationsId(patientId);
+    try {
+      await saveLetterJustificationsMutation({
+        patientId,
+        justifications: Array.from(selected),
+        otherText: otherChecked && otherText ? otherText : undefined,
+        confirmedBy: "current-user", // TODO: Get from auth context if available
+      });
+      // Clear local state after successful save
+      setLetterJustifications((prev) => {
+        const updated = { ...prev };
+        delete updated[patientId];
+        return updated;
+      });
+      setLetterOtherText((prev) => {
+        const updated = { ...prev };
+        delete updated[patientId];
+        return updated;
+      });
+      setLetterOtherChecked((prev) => {
+        const updated = { ...prev };
+        delete updated[patientId];
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error saving letter justifications:", error);
+    } finally {
+      setSavingJustificationsId(null);
+    }
+  };
+
+  const toggleLetterJustification = (patientId: string, justification: string) => {
+    setLetterJustifications((prev) => {
+      const current = prev[patientId] || new Set<string>();
+      const updated = new Set(current);
+      if (updated.has(justification)) {
+        updated.delete(justification);
+      } else {
+        updated.add(justification);
+      }
+      return { ...prev, [patientId]: updated };
+    });
   };
 
   const handleDownloadPdf = async (patient: NonNullable<typeof patients>[number]) => {
@@ -120,6 +187,10 @@ export default function ResultsPage() {
       secondRecommendedStudy: patient.secondRecommendedStudy || undefined,
       secondQualifyingRationale: patient.secondQualifyingRationale || undefined,
       addendums: patient.addendums,
+      // Attestation letter justification fields
+      needsLetterReason: patient.needsLetterReason || undefined,
+      letterJustifications: patient.letterJustifications || undefined,
+      letterJustificationOther: patient.letterJustificationOther || undefined,
     });
     doc.save(`attestation_${patient.mrn}_${patient.dateOfService}.pdf`);
   };
@@ -218,11 +289,12 @@ export default function ResultsPage() {
             Test Identified
           </span>
         );
-      case "APPROVED_NEEDS_LETTER":
+      case "BORDERLINE_NEEDS_LETTER":
+      case "APPROVED_NEEDS_LETTER": // Backwards compatibility
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
             <FileWarning className="w-3 h-3" />
-            Test Identified - Needs Letter
+            Borderline - Needs Letter
           </span>
         );
       case "DENIED":
@@ -721,6 +793,142 @@ export default function ResultsPage() {
                       </div>
                     )}
 
+                    {/* Attestation Letter Justification Section for BORDERLINE_NEEDS_LETTER */}
+                    {patient.status === "COMPLETE" &&
+                      (patient.decision === "BORDERLINE_NEEDS_LETTER" || patient.decision === "APPROVED_NEEDS_LETTER") &&
+                      (() => {
+                        // Auto-detect or use stored reason
+                        const reason = (patient.needsLetterReason ||
+                          detectNeedsLetterReason(
+                            patient.recommendedStudy,
+                            patient.supportingCriteria
+                          )) as NeedsLetterReason | null;
+
+                        if (!reason) return null;
+
+                        const category = getJustificationsForReason(reason);
+                        if (!category) return null;
+
+                        const isAlreadyConfirmed = !!patient.letterJustificationsConfirmedAt;
+                        const patientSelected = letterJustifications[patient._id] || new Set<string>();
+                        const patientOtherChecked = letterOtherChecked[patient._id] || false;
+                        const patientOtherText = letterOtherText[patient._id] || "";
+                        const canSubmit =
+                          patientSelected.size > 0 ||
+                          (patientOtherChecked && patientOtherText.trim().length > 0);
+
+                        return (
+                          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                            <div className="flex items-start gap-3">
+                              <FileWarning className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-yellow-800">
+                                  Attestation Letter Required
+                                </h4>
+                                <p className="text-sm text-yellow-700 mt-1">
+                                  Reason:{" "}
+                                  <span className="font-medium">
+                                    {formatReasonDisplay(reason)}
+                                  </span>
+                                </p>
+
+                                {isAlreadyConfirmed ? (
+                                  // Show confirmed state
+                                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <p className="text-sm text-green-800 font-medium flex items-center gap-2">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      Justifications Confirmed
+                                    </p>
+                                    <ul className="mt-2 space-y-1">
+                                      {patient.letterJustifications?.map((j, i) => (
+                                        <li key={i} className="text-sm text-green-700">
+                                          • {j}
+                                        </li>
+                                      ))}
+                                      {patient.letterJustificationOther && (
+                                        <li className="text-sm text-green-700">
+                                          • Other: {patient.letterJustificationOther}
+                                        </li>
+                                      )}
+                                    </ul>
+                                  </div>
+                                ) : (
+                                  // Show selection UI
+                                  <div className="mt-3 space-y-2">
+                                    <p className="text-xs font-medium text-yellow-800">
+                                      Select applicable justifications (at least one required):
+                                    </p>
+                                    <div className="space-y-2">
+                                      {category.justificationOptions.map((option) => (
+                                        <label
+                                          key={option}
+                                          className="flex items-start gap-2 cursor-pointer"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={patientSelected.has(option)}
+                                            onChange={() =>
+                                              toggleLetterJustification(patient._id, option)
+                                            }
+                                            className="mt-0.5 w-4 h-4 text-yellow-600 border-yellow-300 rounded focus:ring-yellow-500"
+                                          />
+                                          <span className="text-sm text-yellow-900">{option}</span>
+                                        </label>
+                                      ))}
+                                      <label className="flex items-start gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={patientOtherChecked}
+                                          onChange={(e) =>
+                                            setLetterOtherChecked((prev) => ({
+                                              ...prev,
+                                              [patient._id]: e.target.checked,
+                                            }))
+                                          }
+                                          className="mt-0.5 w-4 h-4 text-yellow-600 border-yellow-300 rounded focus:ring-yellow-500"
+                                        />
+                                        <span className="text-sm text-yellow-900">Other</span>
+                                      </label>
+                                      {patientOtherChecked && (
+                                        <textarea
+                                          value={patientOtherText}
+                                          onChange={(e) =>
+                                            setLetterOtherText((prev) => ({
+                                              ...prev,
+                                              [patient._id]: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="Please specify..."
+                                          className="w-full ml-6 px-3 py-2 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                                          rows={2}
+                                        />
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => handleSaveLetterJustifications(patient._id)}
+                                      disabled={!canSubmit || savingJustificationsId === patient._id}
+                                      className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {savingJustificationsId === patient._id ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="w-4 h-4" />
+                                          Confirm Justifications
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                     <div className="mt-4 flex gap-2">
                       {patient.rationale && (
                         <button
@@ -743,13 +951,20 @@ export default function ResultsPage() {
                         </button>
                       )}
                       {patient.status === "COMPLETE" && patient.decision && (
-                        <button
-                          onClick={() => handleDownloadPdf(patient)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                          <Download className="w-3 h-3" />
-                          Download PDF
-                        </button>
+                        (patient.decision === "BORDERLINE_NEEDS_LETTER" || patient.decision === "APPROVED_NEEDS_LETTER") && !patient.letterJustificationsConfirmedAt ? (
+                          <span className="text-xs text-yellow-600 italic flex items-center gap-1">
+                            <FileWarning className="w-3 h-3" />
+                            Confirm justifications above to download PDF
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleDownloadPdf(patient)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                          >
+                            <Download className="w-3 h-3" />
+                            Download PDF
+                          </button>
+                        )
                       )}
                     </div>
                   </div>

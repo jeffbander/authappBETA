@@ -17,7 +17,8 @@ export default defineSchema({
     decision: v.optional(
       v.union(
         v.literal("APPROVED_CLEAN"),
-        v.literal("APPROVED_NEEDS_LETTER"),
+        v.literal("BORDERLINE_NEEDS_LETTER"),
+        v.literal("APPROVED_NEEDS_LETTER"), // Deprecated: kept for backwards compatibility with existing data
         v.literal("DENIED")
       )
     ),
@@ -71,6 +72,31 @@ export default defineSchema({
       addedByName: v.string(),
       addedAt: v.number(),
     }))),
+    // Attestation letter justification fields (for BORDERLINE_NEEDS_LETTER cases)
+    needsLetterReason: v.optional(
+      v.union(
+        // Nuclear reasons
+        v.literal("ASYMPTOMATIC_HIGH_RISK_SCREENING"),
+        v.literal("REPEAT_NUCLEAR_WITHIN_2_YEARS"),
+        v.literal("PREOP_LOW_RISK_SURGERY"),
+        // Stress Echo reasons
+        v.literal("VALVE_FOLLOWUP_NO_NEW_SYMPTOMS"),
+        v.literal("ATHLETE_SCREENING_HCM_HISTORY"),
+        v.literal("REPEAT_STRESS_ECHO_WITHIN_1_YEAR"),
+        // Echo reasons
+        v.literal("STABLE_VALVE_FREQUENT_FOLLOWUP"),
+        v.literal("STABLE_HF_REPEAT"),
+        v.literal("ROUTINE_HTN_FOLLOWUP"),
+        // Vascular reasons
+        v.literal("ASYMPTOMATIC_CAROTID_SCREENING"),
+        v.literal("MINOR_STENOSIS_FREQUENT_FOLLOWUP"),
+        v.literal("VENOUS_INSUFFICIENCY_NO_ULCERATION")
+      )
+    ),
+    letterJustifications: v.optional(v.array(v.string())),
+    letterJustificationOther: v.optional(v.string()),
+    letterJustificationsConfirmedAt: v.optional(v.number()),
+    letterJustificationsConfirmedBy: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.string(),
     archived: v.boolean(),

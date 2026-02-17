@@ -123,7 +123,7 @@ ${rulesText}${referenceCasesSection}
 ## Instructions
 Analyze the clinical information and return a JSON response with the following structure:
 {
-  "decision": "APPROVED_CLEAN" | "APPROVED_NEEDS_LETTER" | "DENIED",
+  "decision": "APPROVED_CLEAN" | "BORDERLINE_NEEDS_LETTER" | "DENIED",
   "recommendedStudy": "NUCLEAR" | "STRESS_ECHO" | "ECHO" | "VASCULAR" | "NONE",
   "rationale": "Detailed explanation with inline citations. Every claim must include a direct quote from the clinical notes in the format: Per [date] note: '[exact quote]'. If a claim cannot be supported by a direct quote, state that explicitly. If symptoms cannot be confirmed as new/worsening, recommend provider documentation.",
   "supportingCriteria": [
@@ -141,13 +141,20 @@ Analyze the clinical information and return a JSON response with the following s
   "extractedSymptoms": ["list", "of", "symptoms"],
   "extractedPriorStudies": ["list", "of", "prior", "studies"],
   "missingFields": ["list of missing required fields"] | null,
-  "needsReview": false
+  "needsReview": false,
+  "needsLetterReason": "ASYMPTOMATIC_HIGH_RISK_SCREENING" | "REPEAT_NUCLEAR_WITHIN_2_YEARS" | "PREOP_LOW_RISK_SURGERY" | "VALVE_FOLLOWUP_NO_NEW_SYMPTOMS" | "ATHLETE_SCREENING_HCM_HISTORY" | "REPEAT_STRESS_ECHO_WITHIN_1_YEAR" | "STABLE_VALVE_FREQUENT_FOLLOWUP" | "STABLE_HF_REPEAT" | "ROUTINE_HTN_FOLLOWUP" | "ASYMPTOMATIC_CAROTID_SCREENING" | "MINOR_STENOSIS_FREQUENT_FOLLOWUP" | "VENOUS_INSUFFICIENCY_NO_ULCERATION" | null
 }
 
 Important rules:
 1. If insurance is Medicare (traditional/original), the study is approved per Medicare coverage guidelines when the clinical documentation is sufficient to support the study. Medicare covers medically indicated studies, but the documentation must still meet clinical standards. If the notes are missing key symptom documentation (see rule 15 - "magic words"), set needsReview to true and recommend the provider strengthen the documentation before proceeding.
 2. Medicare Advantage should be treated as commercial insurance.
 3. Follow the study hierarchy: Nuclear > Stress Echo > Echo > Vascular. Use NONE if no cardiac study is clinically appropriate.
+3a. BORDERLINE_NEEDS_LETTER REASON: When setting decision to "BORDERLINE_NEEDS_LETTER", you MUST also set needsLetterReason to identify which specific "REQUIRES LETTER" criterion triggered this decision. Valid values are:
+   - For Nuclear: ASYMPTOMATIC_HIGH_RISK_SCREENING (asymptomatic screening in high-risk population), REPEAT_NUCLEAR_WITHIN_2_YEARS (repeat study within 2 years without new symptoms), PREOP_LOW_RISK_SURGERY (pre-operative assessment for low-risk surgery)
+   - For Stress Echo: VALVE_FOLLOWUP_NO_NEW_SYMPTOMS (follow-up of valve disease without new symptoms), ATHLETE_SCREENING_HCM_HISTORY (athlete screening with HCM family history), REPEAT_STRESS_ECHO_WITHIN_1_YEAR (repeat within 1 year without clinical change)
+   - For Echo: STABLE_VALVE_FREQUENT_FOLLOWUP (stable valve disease more frequently than annually), STABLE_HF_REPEAT (stable heart failure without clinical change), ROUTINE_HTN_FOLLOWUP (routine follow-up of well-controlled hypertension)
+   - For Vascular: ASYMPTOMATIC_CAROTID_SCREENING (asymptomatic carotid screening with risk factors), MINOR_STENOSIS_FREQUENT_FOLLOWUP (minor stenosis follow-up more than annually), VENOUS_INSUFFICIENCY_NO_ULCERATION (venous insufficiency without ulceration)
+   If the decision is NOT BORDERLINE_NEEDS_LETTER, set needsLetterReason to null.
 4. If critical clinical information is missing, set needsReview to true and list missing fields. NOTE: "Study type" and "clinical indication" are NOT missing fields — YOU determine those based on the patient's diagnoses, symptoms, and clinical findings. Missing fields should be things like: symptom characterization, temporal status, prior study results, etc.
 5. Reference the specific authorization rule and criterion text that supports the decision. Quote the exact criterion from the rules. Structure the rationale as: clinical finding → matching rule citation.
 6. The "supportingCriteria" array must include every rule criterion that supports the decision. Each entry should cite the rule name, quote the exact criterion text, and describe the clinical evidence from the patient.
@@ -315,7 +322,7 @@ Important rules:
    - "auto-approve", "auto-approval", "auto-deny", or any "auto-" prefix related to decisions
    - "per authorization rules", "authorization rules state", "per our rules", or any reference to internal rule mechanics
    - "study hierarchy", "hierarchy enforcement", or references to internal study ranking systems
-   - "needsReview", "NEEDS_REVIEW", "APPROVED_CLEAN", "APPROVED_NEEDS_LETTER", or any internal status codes
+   - "needsReview", "NEEDS_REVIEW", "APPROVED_CLEAN", "BORDERLINE_NEEDS_LETTER", or any internal status codes
    - "the AI", "AI assessment", "AI analysis", "automated system", or any reference to artificial intelligence or automated processing
    - "rule 1", "rule 15", "rule 16b", or any numbered rule references
    - "magic words", "documentation sufficiency check", "qualification gap analysis", or other internal process names
@@ -399,6 +406,7 @@ Important rules:
         extractedPriorStudies: result.extractedPriorStudies || undefined,
         supportingCriteria: result.supportingCriteria || undefined,
         missingFields: result.missingFields || undefined,
+        needsLetterReason: result.needsLetterReason || undefined,
       });
 
       // Increment usage counts for training examples used in this prompt

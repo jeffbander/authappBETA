@@ -27,6 +27,10 @@ interface PdfData {
   secondQualifyingRationale?: string;
   // Physician addendums/clarifications
   addendums?: { text: string; addedByName: string; addedAt: number }[];
+  // Attestation letter justification fields
+  needsLetterReason?: string;
+  letterJustifications?: string[];
+  letterJustificationOther?: string;
 }
 
 export function generateAttestationPdf(data: PdfData): jsPDF {
@@ -162,6 +166,61 @@ export function generateAttestationPdf(data: PdfData): jsPDF {
     const rationaleLines = doc.splitTextToSize(fullRationale, pageWidth - 40);
     doc.text(rationaleLines, 20, y);
     y += rationaleLines.length * 5 + 10;
+  }
+
+  // Medical Necessity Justification section (for BORDERLINE_NEEDS_LETTER cases)
+  if (
+    (data.decision === "BORDERLINE_NEEDS_LETTER" || data.decision === "APPROVED_NEEDS_LETTER") &&
+    data.letterJustifications &&
+    data.letterJustifications.length > 0
+  ) {
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 51, 102);
+    doc.text("Medical Necessity Justification", 20, y);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    // Introductory statement
+    const introText =
+      "The ordering physician attests that this study is medically necessary for the following reasons:";
+    const introLines = doc.splitTextToSize(introText, pageWidth - 40);
+    doc.text(introLines, 20, y);
+    y += introLines.length * 5 + 4;
+
+    // List justifications as bullet points
+    for (const justification of data.letterJustifications) {
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      const bulletText = `\u2022 ${justification}`;
+      const bulletLines = doc.splitTextToSize(bulletText, pageWidth - 48);
+      doc.text(bulletLines, 24, y);
+      y += bulletLines.length * 5 + 2;
+    }
+
+    // Add "Other" justification if present
+    if (data.letterJustificationOther) {
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      const otherText = `\u2022 ${data.letterJustificationOther}`;
+      const otherLines = doc.splitTextToSize(otherText, pageWidth - 48);
+      doc.text(otherLines, 24, y);
+      y += otherLines.length * 5 + 2;
+    }
+
+    y += 6;
   }
 
   // Check if we need a new page for signature
@@ -368,8 +427,9 @@ function formatDecision(decision: string): string {
   switch (decision) {
     case "APPROVED_CLEAN":
       return "Approved";
-    case "APPROVED_NEEDS_LETTER":
-      return "Approved - Attestation Letter Required";
+    case "BORDERLINE_NEEDS_LETTER":
+    case "APPROVED_NEEDS_LETTER": // Backwards compatibility
+      return "Borderline - Attestation Letter Required";
     case "DENIED":
       return "Denied";
     default:
