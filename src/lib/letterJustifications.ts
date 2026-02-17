@@ -36,6 +36,11 @@ export const JUSTIFICATION_CATEGORIES: JustificationCategory[] = [
     displayName: "Asymptomatic High-Risk Screening",
     studyType: "NUCLEAR",
     justificationOptions: [
+      // Symptom-based options (prioritized for insurance approval)
+      "Patient reports dizziness with exertion, warranting cardiac evaluation given high-risk profile",
+      "Patient reports shortness of breath (SOB) with activity, supporting need for ischemia assessment",
+      "Patient reports fatigue or reduced exercise tolerance concerning for cardiac etiology",
+      // Risk-factor options
       "Patient has long-standing diabetes (>10 years) with multiple microvascular complications",
       "Strong family history of premature CAD (first-degree relative before age 55 in men, 65 in women)",
       "Multiple cardiac risk factors warrant baseline ischemia evaluation despite absence of symptoms",
