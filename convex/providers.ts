@@ -127,6 +127,7 @@ export const seedProviders = mutation({
       { name: "Sooraj Shah", credentials: "MD", npi: "TBD" },
       { name: "Jared Leventhal", credentials: "MD", npi: "TBD" },
       { name: "Paul Leis", credentials: "DO", npi: "TBD" },
+      { name: "Joshua Shatzkes", credentials: "MD", npi: "TBD" },
     ];
 
     const existingProviders = await ctx.db.query("providers").collect();
