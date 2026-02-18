@@ -44,7 +44,7 @@ export default function WorklistPage() {
         patient.recommendedStudy &&
         patient.recommendedStudy !== "NONE"
       ) {
-        const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy);
+        const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy, patient.dateOfService);
         if (!scheduled.isScheduled) {
           if (patient.decision === "APPROVED_CLEAN" || patient.decision === "BORDERLINE_NEEDS_LETTER" || patient.decision === "APPROVED_NEEDS_LETTER") {
             approved.push(patient);

@@ -541,7 +541,7 @@ export default function ReviewPage() {
                             {(patient as any).secondRecommendedStudy && ` + ${formatStudyName((patient as any).secondRecommendedStudy)}`}
                           </span>
                           {patient.recommendedStudy && patient.recommendedStudy !== "NONE" && (() => {
-                            const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy as StudyType);
+                            const scheduled = findScheduledStudy(patient.clinicalNotes, patient.recommendedStudy as StudyType, patient.dateOfService);
                             return scheduled.isScheduled ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                                 <Calendar className="w-3 h-3" />

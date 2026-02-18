@@ -214,68 +214,156 @@ export interface EligibleSuggestion {
   matchingDiagnosis: string;
   isAlreadyScheduled: boolean;
   scheduledContext?: string; // The text that indicates it's scheduled
+  scheduledDate?: string; // The actual scheduled date if found
 }
 
-// Patterns that indicate a study is already scheduled/ordered
-const SCHEDULED_PATTERNS: RegExp[] = [
-  /schedul(ed|e)/i,
-  /order(ed|ing)?/i,
-  /plan(ned)?/i,
-  /pending/i,
-  /upcoming/i,
-  /refer(red|ral)?/i,
-  /request(ed|ing)?/i,
-  /arrange(d|ment)?/i,
-  /will (get|have|undergo|perform)/i,
-  /to (get|have|undergo|perform)/i,
-  /needs? (a|an)?/i,
-  /recommend(ed)?/i,
-  /await(ing)?/i,
+// Scheduling indicators - MUST be paired with a specific date to be valid
+const SCHEDULING_INDICATORS: RegExp[] = [
+  /\bschedul(ed|e|ing)\b/i,
+  /\bordered\b/i,
+  /\bpending\b/i,
+  /\bupcoming\b/i,
+  /\bplanned\b/i,
+  /\bbooked\b/i,
+  /\bappointment\b/i,
 ];
 
 /**
- * Check if clinical notes indicate a study is already scheduled
+ * Extract a date from text - returns null if no valid date found
+ */
+function extractDateFromText(text: string, referenceYear: number): Date | null {
+  // Date patterns to try (in order of specificity)
+  const patterns: Array<{ regex: RegExp; handler: (match: RegExpMatchArray) => Date | null }> = [
+    // MM/DD/YYYY or MM-DD-YYYY
+    {
+      regex: /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/,
+      handler: (m) => {
+        const d = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+        return isNaN(d.getTime()) ? null : d;
+      },
+    },
+    // MM/DD/YY or MM-DD-YY
+    {
+      regex: /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})/,
+      handler: (m) => {
+        const year = parseInt(m[3]) + 2000; // Assume 20xx
+        const d = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+        return isNaN(d.getTime()) ? null : d;
+      },
+    },
+    // Month DD, YYYY (e.g., "February 15, 2026")
+    {
+      regex: /(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})/i,
+      handler: (m) => {
+        const d = new Date(`${m[1]} ${m[2]}, ${m[3]}`);
+        return isNaN(d.getTime()) ? null : d;
+      },
+    },
+    // Month DD (e.g., "February 15") - assume reference year or next year
+    {
+      regex: /(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?!\s*,?\s*\d)/i,
+      handler: (m) => {
+        let d = new Date(`${m[1]} ${m[2]}, ${referenceYear}`);
+        if (isNaN(d.getTime())) return null;
+        // If date is in the past, try next year
+        const now = new Date();
+        if (d < now) {
+          d = new Date(`${m[1]} ${m[2]}, ${referenceYear + 1}`);
+        }
+        return d;
+      },
+    },
+    // MM/DD (e.g., "2/15") - assume reference year or next year
+    {
+      regex: /\b(\d{1,2})\/(\d{1,2})\b(?!\/\d)/,
+      handler: (m) => {
+        let d = new Date(referenceYear, parseInt(m[1]) - 1, parseInt(m[2]));
+        if (isNaN(d.getTime())) return null;
+        // If date is in the past, try next year
+        const now = new Date();
+        if (d < now) {
+          d = new Date(referenceYear + 1, parseInt(m[1]) - 1, parseInt(m[2]));
+        }
+        return d;
+      },
+    },
+  ];
+
+  for (const { regex, handler } of patterns) {
+    const match = text.match(regex);
+    if (match) {
+      const date = handler(match);
+      if (date) return date;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Check if clinical notes indicate a study is already scheduled.
+ * STRICT: Only returns true if there is a specific date on or after the date of service.
+ * Just saying "echo scheduled" without a date is NOT sufficient.
  */
 export function findScheduledStudy(
   clinicalNotes: string,
-  studyType: StudyType
-): { isScheduled: boolean; context?: string } {
+  studyType: StudyType,
+  dateOfService: string
+): { isScheduled: boolean; context?: string; scheduledDate?: string } {
   if (!clinicalNotes) {
     return { isScheduled: false };
   }
 
-  const notesLower = clinicalNotes.toLowerCase();
+  const dos = new Date(dateOfService);
+  if (isNaN(dos.getTime())) {
+    return { isScheduled: false };
+  }
+
+  const referenceYear = dos.getFullYear();
 
   // Define study keywords for each type
   const studyKeywords: Record<StudyType, string[]> = {
-    NUCLEAR: ["nuclear", "myocardial perfusion", "mpi", "nuclear stress"],
-    STRESS_ECHO: ["stress echo", "stress echocardiogram", "dobutamine echo", "exercise echo"],
+    NUCLEAR: ["nuclear", "myocardial perfusion", "mpi", "nuclear stress", "spect", "pet scan"],
+    STRESS_ECHO: ["stress echo", "stress echocardiogram", "dobutamine echo", "exercise echo", "dse"],
     ECHO: ["echo", "echocardiogram", "tte", "tee", "transthoracic"],
     VASCULAR: ["vascular", "carotid", "abi", "arterial", "duplex"],
   };
 
   const keywords = studyKeywords[studyType];
+  const sentences = clinicalNotes.split(/[.;\n]+/);
 
-  // Look for patterns like "echo scheduled", "scheduled for echo", "will get echo", etc.
-  for (const keyword of keywords) {
-    // Check if keyword exists in notes
-    if (!notesLower.includes(keyword)) continue;
+  for (const sentence of sentences) {
+    const sentenceLower = sentence.toLowerCase();
 
-    // Find sentences/phrases containing the keyword
-    const sentences = clinicalNotes.split(/[.;]\s*/);
-    for (const sentence of sentences) {
-      const sentenceLower = sentence.toLowerCase();
-      if (!sentenceLower.includes(keyword)) continue;
+    // Check if sentence contains the study type
+    const hasStudyKeyword = keywords.some((kw) => sentenceLower.includes(kw));
+    if (!hasStudyKeyword) continue;
 
-      // Check if any scheduling pattern is in the same sentence
-      for (const pattern of SCHEDULED_PATTERNS) {
-        if (pattern.test(sentenceLower)) {
-          // Return the matching context (truncated if too long)
-          const context = sentence.trim().slice(0, 100) + (sentence.length > 100 ? "..." : "");
-          return { isScheduled: true, context };
-        }
-      }
+    // Check if sentence has a scheduling indicator
+    const hasSchedulingIndicator = SCHEDULING_INDICATORS.some((p) => p.test(sentenceLower));
+    if (!hasSchedulingIndicator) continue;
+
+    // CRITICAL: Must find a specific date in the sentence
+    const scheduledDate = extractDateFromText(sentence, referenceYear);
+    if (!scheduledDate) {
+      continue; // No date = cannot confirm it's scheduled
     }
+
+    // Date must be on or after the date of service
+    // Set both to start of day for comparison
+    const dosStart = new Date(dos.getFullYear(), dos.getMonth(), dos.getDate());
+    const schedStart = new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), scheduledDate.getDate());
+
+    if (schedStart >= dosStart) {
+      // This is a legitimately scheduled future test
+      const context = sentence.trim().slice(0, 100) + (sentence.length > 100 ? "..." : "");
+      return {
+        isScheduled: true,
+        context,
+        scheduledDate: scheduledDate.toLocaleDateString(),
+      };
+    }
+    // If date is in the past relative to DOS, ignore - this is not a pending scheduled test
   }
 
   return { isScheduled: false };
@@ -322,13 +410,14 @@ export function getSuggestionsForPatient(
     const matchingDiagnosis = getMatchingDiagnosis(diagnoses, suggestion.diagnosisPatterns);
     if (matchingDiagnosis) {
       // Check if this study is already scheduled in the clinical notes
-      const scheduledInfo = findScheduledStudy(clinicalNotes, suggestion.studyType);
+      const scheduledInfo = findScheduledStudy(clinicalNotes, suggestion.studyType, dateOfService);
 
       eligibleSuggestions.push({
         suggestion,
         matchingDiagnosis,
         isAlreadyScheduled: scheduledInfo.isScheduled,
         scheduledContext: scheduledInfo.context,
+        scheduledDate: scheduledInfo.scheduledDate,
       });
     }
   }
@@ -341,12 +430,13 @@ export function getSuggestionsForPatient(
       for (let i = 0; i < eligibleSuggestions.length; i++) {
         if (eligibleSuggestions[i].suggestion.studyType === "STRESS_ECHO") {
           // Check if NUCLEAR is already scheduled (may differ from STRESS_ECHO scheduled status)
-          const nuclearScheduledInfo = findScheduledStudy(clinicalNotes, "NUCLEAR");
+          const nuclearScheduledInfo = findScheduledStudy(clinicalNotes, "NUCLEAR", dateOfService);
           eligibleSuggestions[i] = {
             suggestion: nuclearTemplate,
             matchingDiagnosis: eligibleSuggestions[i].matchingDiagnosis,
             isAlreadyScheduled: nuclearScheduledInfo.isScheduled,
             scheduledContext: nuclearScheduledInfo.context,
+            scheduledDate: nuclearScheduledInfo.scheduledDate,
           };
         }
       }
