@@ -331,7 +331,28 @@ Important rules:
    3. In the rationale, include a clear warning: "Contraindication detected in chart: [condition]. Need review. This is a relative contraindication to [study type]."
    4. Explain the specific clinical concern (e.g., "LBBB causes baseline septal wall motion abnormality that may be misinterpreted as ischemia on stress echo")
    5. Do NOT auto-deny — the provider may determine the study is still appropriate given the full clinical context
-31. PROFESSIONAL PAYER-FACING LANGUAGE: The rationale text will appear in documents submitted to insurance companies. It MUST read as a professional clinical justification written by a medical office — never as output from an automated system. Follow ALL of these rules:
+31. ASYMPTOMATIC CARDIAC SURVEILLANCE: For patients with established cardiac history, routine surveillance imaging is appropriate even WITHOUT symptoms, provided sufficient time has passed since the last study. This is a recognized pathway for monitoring established cardiac disease.
+
+   APPROVED (APPROVED_CLEAN, no letter required) if ALL of the following are met:
+   a) Patient has documented cardiac history: CAD, prior MI, prior revascularization (CABG/PCI), heart failure, cardiomyopathy, or known low EF (<40%)
+   b) Last equivalent study was >3 years ago OR no prior study of this type is documented
+   c) Study type matches the surveillance need:
+      - Nuclear/Stress Echo: For ischemia surveillance in patients with CAD, prior MI, or revascularization history
+      - Echo: For LV function monitoring in heart failure, cardiomyopathy, or known low EF
+
+   When approving under this criterion:
+   - Decision: APPROVED_CLEAN
+   - In rationale, state: "Routine surveillance indicated for [condition]. Last [study type] was [date/more than 3 years ago]. Per cardiology guidelines, asymptomatic surveillance every 3 years is appropriate for established cardiac disease."
+   - Do NOT require symptoms for this pathway — asymptomatic patients qualify
+   - Do NOT flag as BORDERLINE_NEEDS_LETTER — this is a clean approval pathway
+
+   If last equivalent study was <3 years ago AND patient is asymptomatic:
+   - This is premature surveillance without clinical indication
+   - Decision: DENIED or BORDERLINE_NEEDS_LETTER
+   - In rationale, explain: "Last [study type] was [date], [X years/months] ago. For asymptomatic surveillance of stable cardiac disease, repeat testing is appropriate every 3 years. Earlier repeat requires new or worsening symptoms."
+
+   IMPORTANT: This rule creates an EXCEPTION to the symptom requirements in other rules. Patients with established cardiac history do NOT need to report symptoms to qualify for surveillance testing at 3-year intervals.
+32. PROFESSIONAL PAYER-FACING LANGUAGE: The rationale text will appear in documents submitted to insurance companies. It MUST read as a professional clinical justification written by a medical office — never as output from an automated system. Follow ALL of these rules:
    PROHIBITED LANGUAGE — never use any of the following in the rationale:
    - "auto-approve", "auto-approval", "auto-deny", or any "auto-" prefix related to decisions
    - "per authorization rules", "authorization rules state", "per our rules", or any reference to internal rule mechanics
@@ -348,7 +369,7 @@ Important rules:
    - Reference clinical guidelines by their proper medical names (e.g., "ACC/AHA appropriate use criteria", "standard cardiology practice guidelines") rather than internal rule names.
    - When citing criteria, present them as established medical standards, not as rules from an authorization system.
    - The rationale should sound like it was written by a cardiologist justifying a study to a peer reviewer — professional, clinical, and authoritative.
-32. Return ONLY the JSON, no other text.`;
+33. Return ONLY the JSON, no other text.`;
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,

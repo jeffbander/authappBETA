@@ -16,6 +16,7 @@ APPROVED if ANY of the following:
 - Peripheral arterial disease with cardiac symptoms
 - Post-revascularization (PCI >2 years, CABG >5 years) with symptoms
 - Known CAD or diabetes with cardiac risk factors AND no prior nuclear/ischemia evaluation (first-time ischemia assessment)
+- Asymptomatic surveillance for established CAD, prior MI, prior revascularization (CABG/PCI), or low EF (<40%), if last nuclear stress >3 years ago
 
 TIMING CONSIDERATIONS:
 - No prior nuclear study + CAD/diabetes/ischemic risk factors = Nuclear STRONGLY indicated for baseline ischemia evaluation
@@ -52,6 +53,7 @@ APPROVED if ANY of the following:
 - Hypertrophic cardiomyopathy with exertional symptoms
 - Pre-operative assessment for valve surgery candidates
 - Shortness of breath as angina equivalent (ICD-10: R06.02 Shortness of breath, R07.89 Other chest pain)
+- Asymptomatic surveillance for established CAD, prior MI, prior revascularization (CABG/PCI), or low EF (<40%), if last stress echo >3 years ago
 
 REQUIRES LETTER if:
 - Follow-up of known valve disease without new symptoms (if >1 year since last)
@@ -87,6 +89,7 @@ APPROVED if ANY of the following:
 - Chemotherapy cardiotoxicity monitoring (per protocol)
 - Pre-operative for cardiac surgery
 - Known heart failure diagnosis more than one year old (annual reassessment)
+- Asymptomatic surveillance for heart failure, cardiomyopathy, or low EF, if last echo >3 years ago
 
 REQUIRES LETTER if:
 - Follow-up of stable valve disease more frequently than annually
