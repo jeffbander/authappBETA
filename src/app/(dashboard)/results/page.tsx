@@ -67,6 +67,20 @@ export default function ResultsPage() {
 
   const providers = useQuery(api.providers.list);
   const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
+
+  const findMatchingProvider = (extractedName: string | undefined) => {
+    if (!extractedName || !providers) return "";
+    const normalizedInput = extractedName.toLowerCase().replace(/[^a-z]/g, "");
+    const match = providers.find((p) => {
+      const normalizedProvider = p.name.toLowerCase().replace(/[^a-z]/g, "");
+      return (
+        normalizedProvider === normalizedInput ||
+        normalizedInput.includes(normalizedProvider) ||
+        normalizedProvider.includes(normalizedInput)
+      );
+    });
+    return match ? match.name : "";
+  };
   const patients = useQuery(api.patients.list, {
     statusFilter: statusFilter || undefined,
     dateOfServiceFilter: dateFilter || undefined,
@@ -515,7 +529,7 @@ export default function ResultsPage() {
                           <div className="flex items-center gap-2 mt-1">
                             <select
                               className="text-sm border border-amber-300 bg-amber-50 rounded-md px-2 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              value={pendingProvider[patient._id] || ""}
+                              value={pendingProvider[patient._id] ?? findMatchingProvider(patient.extractedPhysician)}
                               onChange={(e) =>
                                 setPendingProvider((prev) => ({
                                   ...prev,
