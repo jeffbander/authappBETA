@@ -128,6 +128,20 @@ export const seedProviders = mutation({
       { name: "Jared Leventhal", credentials: "MD", npi: "TBD" },
       { name: "Paul Leis", credentials: "DO", npi: "TBD" },
       { name: "Joshua Shatzkes", credentials: "MD", npi: "TBD" },
+      { name: "Swaminatha Gurudevan", credentials: "MD", npi: "TBD" },
+      { name: "Victoria Kazickas", credentials: "PA", npi: "TBD" },
+      { name: "Carlo Mannina", credentials: "MD", npi: "TBD" },
+      { name: "Susan Colpoys", credentials: "NP", npi: "TBD" },
+      { name: "Vahid Namdarizandi", credentials: "MD", npi: "TBD" },
+      { name: "Himanshu Sharma", credentials: "MD", npi: "TBD" },
+      { name: "Robert Leber", credentials: "MD", npi: "TBD" },
+      { name: "Sanjay Sivalokanathan", credentials: "MBBS", npi: "TBD" },
+      { name: "Won Joon Koh", credentials: "MD", npi: "TBD" },
+      { name: "Kristen Carter", credentials: "PA-C", npi: "TBD" },
+      { name: "Omar Al Dhaybi", credentials: "MD", npi: "TBD" },
+      { name: "Asaf Rabinovitz", credentials: "MD", npi: "TBD" },
+      { name: "Matthew Tomey", credentials: "MD", npi: "TBD" },
+      { name: "Anton Camaj", credentials: "MD", npi: "TBD" },
     ];
 
     const existingProviders = await ctx.db.query("providers").collect();
