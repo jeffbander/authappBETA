@@ -57,8 +57,13 @@ export default function ResultsPage() {
   const [letterOtherChecked, setLetterOtherChecked] = useState<Record<string, boolean>>({});
   const [savingJustificationsId, setSavingJustificationsId] = useState<string | null>(null);
 
+  // Provider reassignment state
+  const [pendingProvider, setPendingProvider] = useState<Record<string, string>>({});
+  const [savingProviderId, setSavingProviderId] = useState<string | null>(null);
+
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
   const saveLetterJustificationsMutation = useMutation(api.patients.saveLetterJustifications);
+  const updateProviderMutation = useMutation(api.patients.updateProvider);
 
   const providers = useQuery(api.providers.list);
   const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
@@ -502,16 +507,70 @@ export default function ResultsPage() {
                           </p>
                         </div>
                       )}
-                      {patient.extractedPhysician && (
-                        <div>
-                          <span className="text-xs font-medium text-slate-500">
-                            Physician
-                          </span>
+                      <div>
+                        <span className="text-xs font-medium text-slate-500">
+                          Physician
+                        </span>
+                        {(!patient.selectedProvider || patient.selectedProvider === "Other") ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <select
+                              className="text-sm border border-amber-300 bg-amber-50 rounded-md px-2 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={pendingProvider[patient._id] || ""}
+                              onChange={(e) =>
+                                setPendingProvider((prev) => ({
+                                  ...prev,
+                                  [patient._id]: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">Select provider...</option>
+                              {providers?.map((p) => (
+                                <option key={p._id} value={p.name}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              className="text-xs bg-blue-600 text-white px-2 py-1 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={
+                                !pendingProvider[patient._id] ||
+                                savingProviderId === patient._id
+                              }
+                              onClick={async () => {
+                                setSavingProviderId(patient._id);
+                                try {
+                                  await updateProviderMutation({
+                                    patientId: patient._id,
+                                    selectedProvider: pendingProvider[patient._id],
+                                  });
+                                  setPendingProvider((prev) => {
+                                    const updated = { ...prev };
+                                    delete updated[patient._id];
+                                    return updated;
+                                  });
+                                } finally {
+                                  setSavingProviderId(null);
+                                }
+                              }}
+                            >
+                              {savingProviderId === patient._id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                "Save"
+                              )}
+                            </button>
+                            {patient.extractedPhysician && (
+                              <span className="text-xs text-slate-400">
+                                (extracted: {patient.extractedPhysician})
+                              </span>
+                            )}
+                          </div>
+                        ) : (
                           <p className="text-sm text-slate-800">
-                            {patient.extractedPhysician}
+                            {patient.selectedProvider}
                           </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       {patient.extractedDiagnoses &&
                         patient.extractedDiagnoses.length > 0 && (
                           <div>

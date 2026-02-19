@@ -274,6 +274,20 @@ export const addAddendum = mutation({
   },
 });
 
+export const updateProvider = mutation({
+  args: {
+    patientId: v.id("patients"),
+    selectedProvider: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db.get(args.patientId);
+    if (!patient) throw new Error("Patient not found");
+    await ctx.db.patch(args.patientId, {
+      selectedProvider: args.selectedProvider,
+    });
+  },
+});
+
 export const saveLetterJustifications = mutation({
   args: {
     patientId: v.id("patients"),
