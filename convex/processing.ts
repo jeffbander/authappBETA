@@ -4,6 +4,7 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
+import { formatSurveyForPrompt } from "./surveyHelpers";
 
 // Helper function to build the authorization prompt
 function buildAuthorizationPrompt(
@@ -17,7 +18,8 @@ function buildAuthorizationPrompt(
   },
   rulesText: string,
   referenceCasesSection: string,
-  hasPdf: boolean
+  hasPdf: boolean,
+  smsSurveyData?: string
 ): string {
   const pdfInstructions = hasPdf
     ? `\n\nNOTE: A referral PDF document has been provided. Extract all relevant clinical information from the PDF including:
@@ -28,6 +30,15 @@ function buildAuthorizationPrompt(
 - Any symptoms or clinical findings mentioned
 - Any prior cardiac studies mentioned
 Use this extracted information in combination with any additional notes provided below.\n`
+    : "";
+
+  const surveySection = smsSurveyData
+    ? `\n\n## Pre-Visit Patient SMS Symptom Survey
+IMPORTANT: The following symptoms were self-reported by the patient via automated
+SMS survey BEFORE their office visit. This is NOT physician-documented clinical
+examination data. Patient self-report supports but does not replace physician documentation.
+
+${smsSurveyData}\n`
     : "";
 
   return `You are a cardiology study authorization AI assistant for MSW Heart Cardiology. Analyze the following patient information and determine authorization status based on the rules provided.${pdfInstructions}
@@ -41,7 +52,7 @@ ${rulesText}${referenceCasesSection}
 - Patient Type: ${patient.patientType}
 - Clinical Notes: ${patient.clinicalNotes || "(See attached referral PDF)"}
 - Insurance Information: ${patient.insuranceInfo || "(Extract from referral PDF if available)"}
-- Previous Studies: ${patient.previousStudies || "(Extract from referral PDF if available)"}`;
+- Previous Studies: ${patient.previousStudies || "(Extract from referral PDF if available)"}${surveySection}`;
 }
 
 export const processPatient = action({
@@ -99,11 +110,27 @@ export const processPatient = action({
       }
     }
 
+    // Fetch SMS survey data if available
+    let smsSurveyData: string | undefined;
+    if (patient.smsSurveyId) {
+      try {
+        const survey = await ctx.runQuery(api.smsSurveys.getSurveyForPrompt, {
+          surveyId: patient.smsSurveyId,
+        });
+        if (survey && (survey.status === "COMPLETED" || survey.status === "IN_PROGRESS")) {
+          smsSurveyData = formatSurveyForPrompt(survey);
+        }
+      } catch (error) {
+        console.error("Failed to fetch SMS survey:", error);
+      }
+    }
+
     const prompt = buildAuthorizationPrompt(
       patient,
       rulesText,
       referenceCasesSection,
-      hasPdf && !!pdfBase64
+      hasPdf && !!pdfBase64,
+      smsSurveyData
     ) + `
 
 ## Instructions

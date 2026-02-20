@@ -20,6 +20,10 @@ import {
   Sparkles,
   FileText,
   Calendar,
+  MessageSquare,
+  Phone,
+  Send,
+  X,
 } from "lucide-react";
 import { generateAttestationPdf } from "@/lib/generatePdf";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -39,6 +43,194 @@ import {
 
 type StatusFilter = "" | "PROCESSING" | "COMPLETE" | "NEEDS_REVIEW";
 type DecisionFilter = "" | "APPROVED_CLEAN" | "BORDERLINE_NEEDS_LETTER" | "DENIED";
+
+function SurveyStatusBadge({ patientId }: { patientId: Id<"patients"> }) {
+  const survey = useQuery(api.smsSurveys.getByPatientId, { patientId });
+  if (!survey) return null;
+
+  switch (survey.status) {
+    case "IN_PROGRESS":
+    case "PENDING":
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+          <MessageSquare className="w-3 h-3" />
+          Survey In Progress
+        </span>
+      );
+    case "COMPLETED":
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
+          <CheckCircle2 className="w-3 h-3" />
+          Survey Complete
+        </span>
+      );
+    case "EXPIRED":
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+          <MessageSquare className="w-3 h-3" />
+          Survey Expired
+        </span>
+      );
+    case "OPTED_OUT":
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+          <MessageSquare className="w-3 h-3" />
+          Opted Out
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+function SurveySection({
+  patientId,
+  smsSurveyId,
+  surveyModalPatientId,
+  setSurveyModalPatientId,
+  surveyPhone,
+  setSurveyPhone,
+  sendingSurvey,
+  surveyError,
+  surveySuccess,
+  handleSendSurvey,
+}: {
+  patientId: Id<"patients">;
+  smsSurveyId?: Id<"smsSurveys">;
+  surveyModalPatientId: string | null;
+  setSurveyModalPatientId: (id: string | null) => void;
+  surveyPhone: string;
+  setSurveyPhone: (phone: string) => void;
+  sendingSurvey: boolean;
+  surveyError: string | null;
+  surveySuccess: string | null;
+  handleSendSurvey: (patientId: string) => void;
+}) {
+  const survey = useQuery(api.smsSurveys.getByPatientId, { patientId });
+  const isModalOpen = surveyModalPatientId === patientId;
+  const hasActiveSurvey = survey && (survey.status === "PENDING" || survey.status === "IN_PROGRESS");
+  const hasCompletedSurvey = survey && survey.status === "COMPLETED";
+
+  return (
+    <div className="mt-4">
+      {/* Send Survey button or status */}
+      {!hasActiveSurvey && !hasCompletedSurvey && (
+        <div>
+          {isModalOpen ? (
+            <div className="p-4 bg-teal-50 border border-teal-200 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-teal-800 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Send Symptom Survey
+                </h4>
+                <button
+                  onClick={() => {
+                    setSurveyModalPatientId(null);
+                    setSurveyPhone("");
+                  }}
+                  className="text-teal-400 hover:text-teal-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={surveyPhone}
+                  onChange={(e) => setSurveyPhone(e.target.value)}
+                  placeholder="Patient phone (e.g., 2125551234)"
+                  className="flex-1 px-3 py-2 text-sm border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+                <button
+                  onClick={() => handleSendSurvey(patientId)}
+                  disabled={sendingSurvey || !surveyPhone.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingSurvey ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Send
+                </button>
+              </div>
+              {surveyError && (
+                <p className="text-xs text-red-600 mt-2">{surveyError}</p>
+              )}
+              {surveySuccess && (
+                <p className="text-xs text-green-600 mt-2">{surveySuccess}</p>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setSurveyModalPatientId(patientId)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
+            >
+              <MessageSquare className="w-3 h-3" />
+              Send Symptom Survey
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Active survey status */}
+      {hasActiveSurvey && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-700 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Survey in progress — sent to {survey.phoneNumber}
+          </p>
+          <p className="text-xs text-blue-500 mt-1">
+            Question {Math.min(survey.currentQuestionIndex + 1, survey.questions.length)} of{" "}
+            {survey.questions.length} — Sent by {survey.initiatedByName},{" "}
+            {format(new Date(survey.createdAt), "MMM d, h:mm a")}
+          </p>
+        </div>
+      )}
+
+      {/* Completed survey results */}
+      {hasCompletedSurvey && (
+        <div className="p-4 bg-teal-50 border border-teal-200 rounded-xl">
+          <h4 className="text-sm font-semibold text-teal-800 flex items-center gap-2 mb-2">
+            <MessageSquare className="w-4 h-4" />
+            Patient-Reported Symptoms (SMS Survey)
+          </h4>
+          <p className="text-xs text-teal-600 mb-3">
+            Completed {survey.completedAt ? format(new Date(survey.completedAt), "MMM d, h:mm a") : "—"}
+            {" "}&bull; Sent by {survey.initiatedByName}
+          </p>
+          <div className="space-y-1">
+            {survey.questions.map((q) => {
+              if (q.answeredYes === undefined) return null;
+              return (
+                <div key={q.questionId} className="flex items-center gap-2 text-sm">
+                  {q.answeredYes ? (
+                    <>
+                      <span className="text-red-600 font-medium">+</span>
+                      <span className="text-slate-800">
+                        {q.medicalTerm}
+                        {q.followUpAnsweredYes !== undefined && (
+                          <span className={q.followUpAnsweredYes ? "text-red-600 font-medium ml-1" : "text-slate-500 ml-1"}>
+                            ({q.followUpAnsweredYes ? "NEW/WORSENING" : "stable"})
+                          </span>
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-green-600 font-medium">-</span>
+                      <span className="text-slate-500">{q.medicalTerm}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ResultsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
@@ -60,6 +252,13 @@ export default function ResultsPage() {
   // Provider reassignment state
   const [pendingProvider, setPendingProvider] = useState<Record<string, string>>({});
   const [savingProviderId, setSavingProviderId] = useState<string | null>(null);
+
+  // SMS Survey state
+  const [surveyModalPatientId, setSurveyModalPatientId] = useState<string | null>(null);
+  const [surveyPhone, setSurveyPhone] = useState("");
+  const [sendingSurvey, setSendingSurvey] = useState(false);
+  const [surveyError, setSurveyError] = useState<string | null>(null);
+  const [surveySuccess, setSurveySuccess] = useState<string | null>(null);
 
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
   const saveLetterJustificationsMutation = useMutation(api.patients.saveLetterJustifications);
@@ -258,6 +457,38 @@ export default function ResultsPage() {
       console.error("Error applying qualification:", error);
     } finally {
       setApplyingQualificationId(null);
+    }
+  };
+
+  const handleSendSurvey = async (patientId: string) => {
+    if (!surveyPhone.trim()) return;
+    setSendingSurvey(true);
+    setSurveyError(null);
+    setSurveySuccess(null);
+    try {
+      const res = await fetch("/api/send-survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId,
+          phoneNumber: surveyPhone.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSurveyError(data.error || "Failed to send survey");
+      } else {
+        setSurveySuccess("Survey sent successfully!");
+        setSurveyPhone("");
+        setTimeout(() => {
+          setSurveyModalPatientId(null);
+          setSurveySuccess(null);
+        }, 2000);
+      }
+    } catch (err: any) {
+      setSurveyError(err.message || "Network error");
+    } finally {
+      setSendingSurvey(false);
     }
   };
 
@@ -464,6 +695,9 @@ export default function ResultsPage() {
                         <FileText className="w-3 h-3" />
                         PDF Referral
                       </span>
+                    )}
+                    {patient.smsSurveyId && (
+                      <SurveyStatusBadge patientId={patient._id} />
                     )}
                     <span className="text-xs text-slate-400">
                       DOS: {patient.dateOfService}
@@ -1016,6 +1250,20 @@ export default function ResultsPage() {
                           </div>
                         );
                       })()}
+
+                    {/* SMS Survey Section */}
+                    <SurveySection
+                      patientId={patient._id}
+                      smsSurveyId={patient.smsSurveyId}
+                      surveyModalPatientId={surveyModalPatientId}
+                      setSurveyModalPatientId={setSurveyModalPatientId}
+                      surveyPhone={surveyPhone}
+                      setSurveyPhone={setSurveyPhone}
+                      sendingSurvey={sendingSurvey}
+                      surveyError={surveyError}
+                      surveySuccess={surveySuccess}
+                      handleSendSurvey={handleSendSurvey}
+                    />
 
                     <div className="mt-4 flex gap-2">
                       {patient.rationale && (

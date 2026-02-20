@@ -14,6 +14,8 @@ import type * as processing from "../processing.js";
 import type * as providers from "../providers.js";
 import type * as reviews from "../reviews.js";
 import type * as rules from "../rules.js";
+import type * as smsSurveys from "../smsSurveys.js";
+import type * as surveyHelpers from "../surveyHelpers.js";
 import type * as training from "../training.js";
 
 import type {
@@ -29,6 +31,8 @@ declare const fullApi: ApiFromModules<{
   providers: typeof providers;
   reviews: typeof reviews;
   rules: typeof rules;
+  smsSurveys: typeof smsSurveys;
+  surveyHelpers: typeof surveyHelpers;
   training: typeof training;
 }>;
 

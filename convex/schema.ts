@@ -98,6 +98,7 @@ export default defineSchema({
     letterJustificationOther: v.optional(v.string()),
     letterJustificationsConfirmedAt: v.optional(v.number()),
     letterJustificationsConfirmedBy: v.optional(v.string()),
+    smsSurveyId: v.optional(v.id("smsSurveys")),
     createdAt: v.number(),
     createdBy: v.string(),
     archived: v.boolean(),
@@ -106,6 +107,42 @@ export default defineSchema({
     .index("by_dateOfService", ["dateOfService"])
     .index("by_createdAt", ["createdAt"])
     .index("by_createdBy", ["createdBy"]),
+
+  smsSurveys: defineTable({
+    patientId: v.id("patients"),
+    phoneNumber: v.string(),
+    status: v.union(
+      v.literal("PENDING"),
+      v.literal("IN_PROGRESS"),
+      v.literal("COMPLETED"),
+      v.literal("EXPIRED"),
+      v.literal("OPTED_OUT")
+    ),
+    currentQuestionIndex: v.number(),
+    questions: v.array(
+      v.object({
+        questionId: v.string(),
+        questionText: v.string(),
+        medicalTerm: v.string(),
+        response: v.optional(v.string()),
+        answeredYes: v.optional(v.boolean()),
+        answeredAt: v.optional(v.number()),
+        followUpResponse: v.optional(v.string()),
+        followUpAnsweredYes: v.optional(v.boolean()),
+        followUpAnsweredAt: v.optional(v.number()),
+      })
+    ),
+    followUpPending: v.boolean(),
+    invalidReplyCount: v.number(),
+    initiatedBy: v.string(),
+    initiatedByName: v.string(),
+    createdAt: v.number(),
+    lastMessageAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_patientId", ["patientId"])
+    .index("by_phoneNumber_status", ["phoneNumber", "status"])
+    .index("by_status", ["status"]),
 
   providers: defineTable({
     name: v.string(),
