@@ -132,6 +132,24 @@ export const completeSurvey = mutation({
   },
 });
 
+export const cancelSurvey = mutation({
+  args: {
+    surveyId: v.id("smsSurveys"),
+  },
+  handler: async (ctx, args) => {
+    const survey = await ctx.db.get(args.surveyId);
+    if (!survey) throw new Error("Survey not found");
+
+    await ctx.db.patch(args.surveyId, {
+      status: "EXPIRED",
+      lastMessageAt: Date.now(),
+    });
+
+    // Unlink from patient so a new survey can be sent
+    await ctx.db.patch(survey.patientId, { smsSurveyId: undefined });
+  },
+});
+
 export const optOutSurvey = mutation({
   args: {
     surveyId: v.id("smsSurveys"),

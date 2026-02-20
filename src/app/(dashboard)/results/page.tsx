@@ -107,6 +107,8 @@ function SurveySection({
   handleSendSurvey: (patientId: string) => void;
 }) {
   const survey = useQuery(api.smsSurveys.getByPatientId, { patientId });
+  const cancelSurveyMutation = useMutation(api.smsSurveys.cancelSurvey);
+  const [cancelling, setCancelling] = useState(false);
   const isModalOpen = surveyModalPatientId === patientId;
   const hasActiveSurvey = survey && (survey.status === "PENDING" || survey.status === "IN_PROGRESS");
   const hasCompletedSurvey = survey && survey.status === "COMPLETED";
@@ -176,15 +178,40 @@ function SurveySection({
       {/* Active survey status */}
       {hasActiveSurvey && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700 flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Survey in progress — sent to {survey.phoneNumber}
-          </p>
-          <p className="text-xs text-blue-500 mt-1">
-            Question {Math.min(survey.currentQuestionIndex + 1, survey.questions.length)} of{" "}
-            {survey.questions.length} — Sent by {survey.initiatedByName},{" "}
-            {format(new Date(survey.createdAt), "MMM d, h:mm a")}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-700 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Survey in progress — sent to {survey.phoneNumber}
+              </p>
+              <p className="text-xs text-blue-500 mt-1">
+                Question {Math.min(survey.currentQuestionIndex + 1, survey.questions.length)} of{" "}
+                {survey.questions.length} — Sent by {survey.initiatedByName},{" "}
+                {format(new Date(survey.createdAt), "MMM d, h:mm a")}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                setCancelling(true);
+                try {
+                  await cancelSurveyMutation({ surveyId: survey._id });
+                } catch (err) {
+                  console.error("Failed to cancel survey:", err);
+                } finally {
+                  setCancelling(false);
+                }
+              }}
+              disabled={cancelling}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              {cancelling ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <X className="w-3 h-3" />
+              )}
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
