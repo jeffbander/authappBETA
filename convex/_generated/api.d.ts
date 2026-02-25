@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as cleanup from "../cleanup.js";
 import type * as feedback from "../feedback.js";
 import type * as patients from "../patients.js";
 import type * as processing from "../processing.js";
@@ -25,6 +26,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  cleanup: typeof cleanup;
   feedback: typeof feedback;
   patients: typeof patients;
   processing: typeof processing;

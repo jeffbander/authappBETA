@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { ONE_WEEK_MS } from "./cleanup";
 
 export const create = mutation({
   args: {
@@ -20,6 +22,14 @@ export const create = mutation({
       createdAt: Date.now(),
       archived: false,
     });
+
+    // Schedule automatic deletion after 1 week
+    await ctx.scheduler.runAfter(
+      ONE_WEEK_MS,
+      internal.cleanup.deleteExpiredPatient,
+      { patientId }
+    );
+
     return patientId;
   },
 });
