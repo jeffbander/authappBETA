@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { format } from "date-fns";
 import {
@@ -24,6 +24,7 @@ import {
   Phone,
   Send,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { generateAttestationPdf } from "@/lib/generatePdf";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -290,6 +291,9 @@ export default function ResultsPage() {
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
   const saveLetterJustificationsMutation = useMutation(api.patients.saveLetterJustifications);
   const updateProviderMutation = useMutation(api.patients.updateProvider);
+  const resetForReprocessing = useMutation(api.patients.resetForReprocessing);
+  const processPatientAction = useAction(api.processing.processPatient);
+  const [reprocessingPatientId, setReprocessingPatientId] = useState<string | null>(null);
 
   const providers = useQuery(api.providers.list);
   const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
@@ -317,6 +321,18 @@ export default function ResultsPage() {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleReprocess = async (patientId: Id<"patients">) => {
+    setReprocessingPatientId(patientId);
+    try {
+      await resetForReprocessing({ patientId });
+      await processPatientAction({ patientId });
+    } catch (error) {
+      console.error("Reprocessing error:", error);
+    } finally {
+      setReprocessingPatientId(null);
+    }
   };
 
   const handleSaveLetterJustifications = async (patientId: Id<"patients">) => {
@@ -1356,6 +1372,16 @@ export default function ResultsPage() {
                             Download PDF
                           </button>
                         )
+                      )}
+                      {!patient.archived && (
+                        <button
+                          onClick={() => handleReprocess(patient._id)}
+                          disabled={reprocessingPatientId === patient._id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${reprocessingPatientId === patient._id ? "animate-spin" : ""}`} />
+                          {reprocessingPatientId === patient._id ? "Reprocessing..." : "Reprocess"}
+                        </button>
                       )}
                     </div>
                   </div>
