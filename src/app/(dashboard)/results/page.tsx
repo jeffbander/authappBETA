@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { format } from "date-fns";
 import {
@@ -24,7 +24,6 @@ import {
   Phone,
   Send,
   X,
-  RefreshCw,
 } from "lucide-react";
 import { generateAttestationPdf } from "@/lib/generatePdf";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -291,9 +290,6 @@ export default function ResultsPage() {
   const applyQualifyingSuggestionMutation = useMutation(api.patients.applyQualifyingSuggestion);
   const saveLetterJustificationsMutation = useMutation(api.patients.saveLetterJustifications);
   const updateProviderMutation = useMutation(api.patients.updateProvider);
-  const resetForReprocessing = useMutation(api.patients.resetForReprocessing);
-  const processPatientAction = useAction(api.processing.processPatient);
-  const [reprocessingPatientId, setReprocessingPatientId] = useState<string | null>(null);
 
   const providers = useQuery(api.providers.list);
   const providersWithSigs = useQuery(api.providers.listWithSignatureUrls);
@@ -321,18 +317,6 @@ export default function ResultsPage() {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleReprocess = async (patientId: Id<"patients">) => {
-    setReprocessingPatientId(patientId);
-    try {
-      await resetForReprocessing({ patientId });
-      await processPatientAction({ patientId });
-    } catch (error) {
-      console.error("Reprocessing error:", error);
-    } finally {
-      setReprocessingPatientId(null);
-    }
   };
 
   const handleSaveLetterJustifications = async (patientId: Id<"patients">) => {
@@ -886,34 +870,6 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    {(patient.clinicalNotes || patient.insuranceInfo || patient.previousStudies) && (
-                      <details className="mt-4">
-                        <summary className="text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700">
-                          Original Input
-                        </summary>
-                        <div className="mt-1 space-y-2 bg-amber-50 border border-amber-100 p-3 rounded-lg max-h-64 overflow-y-auto">
-                          {patient.clinicalNotes && (
-                            <div>
-                              <span className="text-xs font-semibold text-amber-700">Clinical Notes</span>
-                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.clinicalNotes}</p>
-                            </div>
-                          )}
-                          {patient.insuranceInfo && (
-                            <div>
-                              <span className="text-xs font-semibold text-amber-700">Insurance Information</span>
-                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.insuranceInfo}</p>
-                            </div>
-                          )}
-                          {patient.previousStudies && (
-                            <div>
-                              <span className="text-xs font-semibold text-amber-700">Previous Studies</span>
-                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.previousStudies}</p>
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    )}
-
                     {patient.rationale && (
                       <div className="mt-4">
                         <span className="text-xs font-medium text-slate-500">
@@ -1372,16 +1328,6 @@ export default function ResultsPage() {
                             Download PDF
                           </button>
                         )
-                      )}
-                      {!patient.archived && (
-                        <button
-                          onClick={() => handleReprocess(patient._id)}
-                          disabled={reprocessingPatientId === patient._id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <RefreshCw className={`w-3 h-3 ${reprocessingPatientId === patient._id ? "animate-spin" : ""}`} />
-                          {reprocessingPatientId === patient._id ? "Reprocessing..." : "Reprocess"}
-                        </button>
                       )}
                     </div>
                   </div>
