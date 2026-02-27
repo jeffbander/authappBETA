@@ -870,14 +870,31 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    {patient.clinicalNotes && (
+                    {(patient.clinicalNotes || patient.insuranceInfo || patient.previousStudies) && (
                       <details className="mt-4">
                         <summary className="text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700">
-                          Clinical Notes (Input)
+                          Original Input
                         </summary>
-                        <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap bg-amber-50 border border-amber-100 p-3 rounded-lg max-h-64 overflow-y-auto">
-                          {patient.clinicalNotes}
-                        </p>
+                        <div className="mt-1 space-y-2 bg-amber-50 border border-amber-100 p-3 rounded-lg max-h-64 overflow-y-auto">
+                          {patient.clinicalNotes && (
+                            <div>
+                              <span className="text-xs font-semibold text-amber-700">Clinical Notes</span>
+                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.clinicalNotes}</p>
+                            </div>
+                          )}
+                          {patient.insuranceInfo && (
+                            <div>
+                              <span className="text-xs font-semibold text-amber-700">Insurance Information</span>
+                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.insuranceInfo}</p>
+                            </div>
+                          )}
+                          {patient.previousStudies && (
+                            <div>
+                              <span className="text-xs font-semibold text-amber-700">Previous Studies</span>
+                              <p className="text-sm text-slate-800 whitespace-pre-wrap">{patient.previousStudies}</p>
+                            </div>
+                          )}
+                        </div>
                       </details>
                     )}
 
