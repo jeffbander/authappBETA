@@ -870,6 +870,17 @@ export default function ResultsPage() {
                         )}
                     </div>
 
+                    {patient.clinicalNotes && (
+                      <details className="mt-4">
+                        <summary className="text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700">
+                          Clinical Notes (Input)
+                        </summary>
+                        <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap bg-amber-50 border border-amber-100 p-3 rounded-lg max-h-64 overflow-y-auto">
+                          {patient.clinicalNotes}
+                        </p>
+                      </details>
+                    )}
+
                     {patient.rationale && (
                       <div className="mt-4">
                         <span className="text-xs font-medium text-slate-500">
