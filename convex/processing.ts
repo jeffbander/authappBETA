@@ -135,20 +135,6 @@ export const processPatient = action({
 
 ## Instructions
 Analyze the clinical information and return a JSON response with the following structure:
-
-## Authorization Rules
-${rulesText}${referenceCasesSection}
-
-## Patient Information
-- MRN: ${patient.mrn || "(not provided - extract from notes if available)"}
-- Date of Service: ${patient.dateOfService}
-- Patient Type: ${patient.patientType}
-- Clinical Notes: ${patient.clinicalNotes}
-- Insurance Information: ${patient.insuranceInfo}
-- Previous Studies: ${patient.previousStudies}
-
-## Instructions
-Analyze the clinical information and return a JSON response with the following structure:
 {
   "decision": "APPROVED_CLEAN" | "BORDERLINE_NEEDS_LETTER" | "DENIED",
   "recommendedStudy": "NUCLEAR" | "STRESS_ECHO" | "ECHO" | "VASCULAR" | "NONE",
