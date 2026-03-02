@@ -126,14 +126,14 @@ export const list = query({
     if (args.statusFilter) {
       patients = await ctx.db
         .query("patients")
-        .filter((q) => q.eq(q.field("status"), args.statusFilter))
+        .withIndex("by_status", (q) => q.eq("status", args.statusFilter as any))
         .order("desc")
-        .collect();
+        .take(500);
     } else {
       patients = await ctx.db
         .query("patients")
         .order("desc")
-        .collect();
+        .take(500);
     }
 
     if (args.dateOfServiceFilter) {
@@ -148,7 +148,10 @@ export const list = query({
       );
     }
 
-    return patients.filter((p) => !p.archived);
+    // Strip large text fields not needed in list views to reduce response size
+    return patients
+      .filter((p) => !p.archived)
+      .map(({ insuranceInfo, previousStudies, ...rest }) => rest);
   },
 });
 
