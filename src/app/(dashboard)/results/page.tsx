@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { format } from "date-fns";
 import {
@@ -307,11 +307,15 @@ export default function ResultsPage() {
     });
     return match ? match.name : "";
   };
-  const patients = useQuery(api.patients.list, {
-    statusFilter: statusFilter || undefined,
-    dateOfServiceFilter: dateFilter || undefined,
-    providerFilter: providerFilter || undefined,
-  });
+  const { results: patients, status: paginationStatus, loadMore } = usePaginatedQuery(
+    api.patients.list,
+    {
+      statusFilter: statusFilter || undefined,
+      dateOfServiceFilter: dateFilter || undefined,
+      providerFilter: providerFilter || undefined,
+    },
+    { initialNumItems: 50 }
+  );
 
   const handleCopy = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text);
@@ -681,7 +685,7 @@ export default function ResultsPage() {
       </div>
 
       {/* Results List */}
-      {patients === undefined ? (
+      {paginationStatus === "LoadingFirstPage" ? (
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
           <p className="text-slate-500 mt-2">Loading results...</p>
@@ -1335,6 +1339,14 @@ export default function ResultsPage() {
               </div>
             );
           })}
+          {paginationStatus === "CanLoadMore" && (
+            <button
+              onClick={() => loadMore(50)}
+              className="w-full py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors border border-blue-200"
+            >
+              Load More Results
+            </button>
+          )}
         </div>
       )}
     </div>

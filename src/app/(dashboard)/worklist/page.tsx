@@ -22,10 +22,12 @@ export default function WorklistPage() {
   const [dateFilter, setDateFilter] = useState("");
 
   const providers = useQuery(api.providers.list);
-  const patients = useQuery(api.patients.list, {
-    dateOfServiceFilter: dateFilter || undefined,
-    providerFilter: providerFilter || undefined,
-  });
+  const patients = useQuery(
+    api.patients.listForWorklist,
+    dateFilter
+      ? { dateOfService: dateFilter, providerFilter: providerFilter || undefined }
+      : "skip"
+  );
 
   // Get selected provider details
   const selectedProvider = providers?.find((p) => p.name === providerFilter);

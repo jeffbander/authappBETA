@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { ONE_WEEK_MS } from "./cleanup";
@@ -120,38 +121,51 @@ export const list = query({
     statusFilter: v.optional(v.string()),
     dateOfServiceFilter: v.optional(v.string()),
     providerFilter: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    let patients;
+    let q;
     if (args.statusFilter) {
-      patients = await ctx.db
+      q = ctx.db
         .query("patients")
         .withIndex("by_status", (q) => q.eq("status", args.statusFilter as any))
-        .order("desc")
-        .take(500);
+        .order("desc");
     } else {
-      patients = await ctx.db
+      q = ctx.db
         .query("patients")
-        .order("desc")
-        .take(500);
+        .order("desc");
     }
 
-    if (args.dateOfServiceFilter) {
-      patients = patients.filter(
-        (p) => p.dateOfService === args.dateOfServiceFilter
-      );
-    }
+    const results = await q.paginate(args.paginationOpts);
 
-    if (args.providerFilter) {
-      patients = patients.filter(
-        (p) => p.selectedProvider === args.providerFilter
-      );
-    }
+    return {
+      ...results,
+      page: results.page
+        .filter((p) => !p.archived)
+        .filter((p) => !args.dateOfServiceFilter || p.dateOfService === args.dateOfServiceFilter)
+        .filter((p) => !args.providerFilter || p.selectedProvider === args.providerFilter)
+        .map(({ insuranceInfo, previousStudies, ...rest }) => rest),
+    };
+  },
+});
 
-    // Strip large text fields not needed in list views to reduce response size
+// Worklist query: uses dateOfService index for small result sets, keeps clinicalNotes
+export const listForWorklist = query({
+  args: {
+    dateOfService: v.string(),
+    providerFilter: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const patients = await ctx.db
+      .query("patients")
+      .withIndex("by_dateOfService", (q) => q.eq("dateOfService", args.dateOfService))
+      .order("desc")
+      .collect();
+
     return patients
       .filter((p) => !p.archived)
-      .map(({ insuranceInfo, previousStudies, clinicalNotes, rationale, denialReason, ...rest }) => rest);
+      .filter((p) => !args.providerFilter || p.selectedProvider === args.providerFilter)
+      .map(({ insuranceInfo, previousStudies, ...rest }) => rest);
   },
 });
 
