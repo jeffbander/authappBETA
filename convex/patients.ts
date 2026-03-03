@@ -151,7 +151,7 @@ export const list = query({
     // Strip large text fields not needed in list views to reduce response size
     return patients
       .filter((p) => !p.archived)
-      .map(({ insuranceInfo, previousStudies, ...rest }) => rest);
+      .map(({ insuranceInfo, previousStudies, clinicalNotes, rationale, denialReason, ...rest }) => rest);
   },
 });
 
